@@ -1,5 +1,6 @@
 #include "Mesh.h"
 #include "Matrix2.h"
+# define M_PI 3.14159265358979323846
 
 using std::string;
 
@@ -512,4 +513,75 @@ bool Mesh::GetVertexIndicesForTri(unsigned int i, unsigned int &a, unsigned int 
     }
 
     return true;
+}
+
+Mesh *Mesh::GenerateUVSphere(const int slices, const int stacks) {
+    Mesh *m = new Mesh;
+    m->numVertices = 2 + slices * (stacks - 1);
+    m->vertices = new Vector3[m->numVertices];
+    m->type = GL_TRIANGLE_FAN;
+
+    m->vertices[0] = Vector3(0, 1, 0);
+
+    int vC = 1;
+
+    for (int i = 0; i < stacks - 1; i++) {
+        auto phi = M_PI * (i + 1) / stacks;
+        for (int j = 0; j < slices; j++) {
+            auto theta = 2.0 * M_PI * j / slices;
+            auto x = std::sin(phi) * std::cos(theta);
+            auto y = std::cos(phi);
+            auto z = std::sin(phi) * std::sin(theta);
+            m->vertices[vC] = Vector3(x,y,z);
+            vC++;
+        }
+    }
+
+    m->vertices[vC] = Vector3(0, -1, 0);
+
+    m->numIndices = slices*6 + ((stacks-2)*slices)*6;
+    m->indices = new GLuint[m->numIndices];
+    int iC = 0;
+
+    for (int i = 0; i < slices; i++) {
+        // Maybe swap this around if normals r wrong
+        m->indices[iC] = 0;
+        m->indices[iC + 1] = i + 1;
+        m->indices[iC + 2] = (i + 1) % slices + 1;
+        m->indices[iC + 3] = vC;
+        m->indices[iC + 4] = (i + 1) % slices + slices * (stacks - 2) + 1;
+        m->indices[iC + 5] = i + slices *  (stacks - 2) + 1;
+        iC += 6;
+    }
+
+    for (int j = 0; j < stacks - 2; j++) {
+        auto j0 = j * slices + 1;
+        auto j1 = (j + 1) * slices + 1;
+        for (int i = 0; i < slices; i++) {
+            auto i0 = j0 + i;
+            auto i1 = j0 + (i + 1) % slices;
+            auto i2 = j1 + (i + 1) % slices;
+            auto i3 = j1 + i;
+            m->indices[iC] = i1;
+            m->indices[iC + 1] = i2;
+            m->indices[iC + 2] = i0;
+            m->indices[iC + 3] = i2;
+            m->indices[iC + 4] = i3;
+            m->indices[iC + 5] = i0;
+            iC += 6;
+        }
+    }
+
+
+    m->textureCoords = new Vector2[m->numVertices];
+    m->colors = new Vector4[m->numVertices];
+    for (int i = 0; i < m->numVertices; i++) {
+        m->colors[i] = Vector4(1.0f, 0.6f, 1.0f, 1.0f);
+        m->textureCoords[i] = Vector2(1.0f, 1.0f);
+    }
+
+
+    m->BufferData();
+
+    return m;
 }

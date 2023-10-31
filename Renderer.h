@@ -21,6 +21,7 @@ public:
     void RenderScene() override;
     void UpdateScene(float dt) override;
 protected:
+    Mesh* sphere;
     Mesh* quad;
     Camera* camera;
     Shader* shader;

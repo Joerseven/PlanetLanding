@@ -6,6 +6,7 @@
 
 Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     camera = new Camera();
+    sphere = Mesh::GenerateUVSphere(6, 6);
     quad = Mesh::GenerateQuad();
 
     texture = Texture::LoadTexture(TEXTUREPATH "Barren Reds.JPG");
@@ -18,19 +19,21 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     SetTextureRepeating(texture, true);
 
     projMatrix = Matrix4::Perspective(1.0f, 15000.0f, (float)width/float(height), 45.0f);
+    modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
     glEnable(GL_DEPTH_TEST);
 
     init = true;
 }
 
 Renderer::~Renderer() {
-    delete quad;
+    delete sphere;
     delete shader;
+    delete quad;
     delete camera;
 }
 
 void Renderer::RenderScene() {
-    glClearColor(1.0, 0.5, 0.2, 1.0);
+    glClearColor(0.1, 0.12, 0.1, 1.0);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     BindShader(shader);
@@ -38,7 +41,10 @@ void Renderer::RenderScene() {
 
     shader->SetTexture(0, "diffuseTex", texture);
 
-    quad->Draw();
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+
+    sphere->Draw();
+    //quad->Draw();
 
 }
 

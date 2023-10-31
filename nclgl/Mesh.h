@@ -55,6 +55,7 @@ public:
 	static Mesh* LoadFromMeshFile(const std::string& name);
     static Mesh* GenerateTriangle();
     static Mesh* GenerateQuad();
+    static Mesh* GenerateUVSphere(int slices, int stacks);
 
 	unsigned int GetTriCount() const {
 		int primCount = indices ? numIndices : numVertices;
