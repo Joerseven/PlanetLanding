@@ -51,7 +51,7 @@ Mesh* Mesh::GenerateTriangle() {
 Mesh* Mesh::GenerateQuad() {
     Mesh* m = new Mesh();
     m->numVertices = 4;
-    m->type = GL_TRIANGLE_STRIP;
+    m->type = GL_TRIANGLES;
 
     m->vertices = new Vector3[m->numVertices];
     m->textureCoords = new Vector2[m->numVertices];
@@ -66,6 +66,12 @@ Mesh* Mesh::GenerateQuad() {
     m->textureCoords[1] = Vector2(0.0f, 0.0f);
     m->textureCoords[2] = Vector2(1.0f, 1.0f);
     m->textureCoords[3] = Vector2(1.0f, 0.0f);
+
+    m->numIndices = 6;
+    m->indices = new GLuint[m->numIndices] {
+        0, 3, 2, 0, 1, 3,
+    };
+
 
     for (int i = 0; i < 4; i++) {
         m->colors[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -526,9 +532,9 @@ Mesh *Mesh::GenerateUVSphere(const int slices, const int stacks) {
     int vC = 1;
 
     for (int i = 0; i < stacks - 1; i++) {
-        auto phi = M_PI * (i + 1) / stacks;
+        auto phi = M_PI * double(i + 1) / double(stacks);
         for (int j = 0; j < slices; j++) {
-            auto theta = 2.0 * M_PI * j / slices;
+            auto theta = 2.0 * M_PI * (double)j / (double)slices;
             auto x = std::sin(phi) * std::cos(theta);
             auto y = std::cos(phi);
             auto z = std::sin(phi) * std::sin(theta);
@@ -540,43 +546,51 @@ Mesh *Mesh::GenerateUVSphere(const int slices, const int stacks) {
     m->vertices[vC] = Vector3(0, -1, 0);
 
     m->numIndices = slices*6 + ((stacks-2)*slices)*6;
+
+    m->numIndices = 6;
+
+
+
     m->indices = new GLuint[m->numIndices];
     int iC = 0;
 
-    for (int i = 0; i < slices; i++) {
-        // Maybe swap this around if normals r wrong
-        m->indices[iC] = 0;
-        m->indices[iC + 1] = i + 1;
-        m->indices[iC + 2] = (i + 1) % slices + 1;
-        m->indices[iC + 3] = vC;
-        m->indices[iC + 4] = (i + 1) % slices + slices * (stacks - 2) + 1;
-        m->indices[iC + 5] = i + slices *  (stacks - 2) + 1;
-        iC += 6;
-    }
+//    for (int i = 0; i < slices; i++) {
+//        // Maybe swap this around if normals r wrong
+//        m->indices[iC] = 0;
+//        m->indices[iC + 2] = i + 1;
+//        m->indices[iC + 1] = (i + 1) % slices + 1;
+//        iC += 3;
+//    }
 
-    for (int j = 0; j < stacks - 2; j++) {
-        auto j0 = j * slices + 1;
-        auto j1 = (j + 1) * slices + 1;
-        for (int i = 0; i < slices; i++) {
-            auto i0 = j0 + i;
-            auto i1 = j0 + (i + 1) % slices;
-            auto i2 = j1 + (i + 1) % slices;
-            auto i3 = j1 + i;
-            m->indices[iC] = i1;
-            m->indices[iC + 1] = i2;
-            m->indices[iC + 2] = i0;
-            m->indices[iC + 3] = i2;
-            m->indices[iC + 4] = i3;
-            m->indices[iC + 5] = i0;
-            iC += 6;
-        }
-    }
-
+    m->indices[0] = 1;
+    m->indices[1] = 6;
+    m->indices[2] = 7;
+    m->indices[3] = 1;
+    m->indices[4] = 6;
+    m->indices[5] = 7;
+//
+//    for (int j = 0; j < stacks - 2; j++) {
+//        auto j0 = j * slices + 1;
+//        auto j1 = (j + 1) * slices + 1;
+//        for (int i = 0; i < slices; i++) {
+//            auto i0 = j0 + i;
+//            auto i1 = j0 + (i + 1) % slices;
+//            auto i2 = j1 + (i + 1) % slices;
+//            auto i3 = j1 + i;
+//            m->indices[iC] = i1;
+//            m->indices[iC + 1] = i2;
+//            m->indices[iC + 2] = i0;
+//            m->indices[iC + 3] = i2;
+//            m->indices[iC + 4] = i3;
+//            m->indices[iC + 5] = i0;
+//            iC += 6;
+//        }
+//    }
 
     m->textureCoords = new Vector2[m->numVertices];
     m->colors = new Vector4[m->numVertices];
     for (int i = 0; i < m->numVertices; i++) {
-        m->colors[i] = Vector4(1.0f, 0.6f, 1.0f, 1.0f);
+        m->colors[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
         m->textureCoords[i] = Vector2(1.0f, 1.0f);
     }
 
@@ -584,4 +598,14 @@ Mesh *Mesh::GenerateUVSphere(const int slices, const int stacks) {
     m->BufferData();
 
     return m;
+}
+
+void Mesh::SetColor(float r, float g, float b, float a) {
+    if (!numVertices) {
+        return;
+    }
+
+    for (int i = 0; i < numVertices; i++) {
+        colors[i] = Vector4(r, g, b, a);
+    }
 }

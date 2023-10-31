@@ -89,6 +89,8 @@ public:
     void GenerateNormals();
     bool GetVertexIndicesForTri(unsigned int i, unsigned int& a, unsigned int& b, unsigned int& c) const;
 
+    void SetColor(float r, float g, float b, float a);
+
 protected:
 	void	BufferData();
 

@@ -6,8 +6,8 @@
 
 Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     camera = new Camera();
-    sphere = Mesh::GenerateUVSphere(6, 6);
-    quad = Mesh::GenerateQuad();
+    sphere = Mesh::GenerateUVSphere(5, 5);
+    //quad = Mesh::GenerateQuad();
 
     texture = Texture::LoadTexture(TEXTUREPATH "Barren Reds.JPG");
     shader = new Shader(SHADERPATH "BaseVertex.glsl", SHADERPATH "BaseFragment.glsl");
@@ -21,6 +21,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     projMatrix = Matrix4::Perspective(1.0f, 15000.0f, (float)width/float(height), 45.0f);
     modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
     glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_CULL_FACE);
 
     init = true;
 }
@@ -40,9 +41,6 @@ void Renderer::RenderScene() {
     UpdateShaderMatrices();
 
     shader->SetTexture(0, "diffuseTex", texture);
-
-    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-
     sphere->Draw();
     //quad->Draw();
 
