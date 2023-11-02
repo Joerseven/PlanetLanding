@@ -19,7 +19,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
     SetTextureRepeating(texture, true);
 
-    projMatrix = Matrix4::Perspective(0.001f, 15000.0f, (float)width/float(height), 45.0f);
+    projMatrix = Matrix4::Perspective(0.01f, 15000.0f, (float)width/float(height), 45.0f);
     modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
