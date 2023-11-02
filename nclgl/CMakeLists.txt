@@ -25,6 +25,7 @@ add_library(nclgl
         HeightMap.cpp
         Texture.cpp
         Light.cpp
+        Cubemap.cpp
 )
 
 

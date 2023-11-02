@@ -9,6 +9,8 @@
 #include "stb/stb_image.h"
 #include "glad/glad.h"
 
+#define TEXTUREPATH "../textures/"
+
 class Texture {
 public:
     static GLuint LoadTexture(const char *filename);

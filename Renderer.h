@@ -9,9 +9,10 @@
 #include "Camera.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "Cubemap.h"
 
 #define SHADERPATH "../shaders/"
-#define TEXTUREPATH "../textures/"
+
 
 class Renderer: public OGLRenderer {
 public:
@@ -26,6 +27,7 @@ protected:
     Camera* camera;
     Shader* shader;
     GLuint texture;
+    Cubemap* cubemap;
 };
 
 

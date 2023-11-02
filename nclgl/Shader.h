@@ -16,6 +16,7 @@ _-_-_-_-_-_-_-""  ""
 
 #pragma once
 #include "OGLRenderer.h"
+#define SHADERPATH "../shaders/"
 
 enum ShaderStage {
 	SHADER_VERTEX,

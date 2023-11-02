@@ -53,12 +53,16 @@ public:
 	virtual void	UpdateScene(float msec);
 	void			SwapBuffers();
 
-	bool			HasInitialised() const;	
-	
+	bool			HasInitialised() const;
+
+    void			BindShader(Shader*s);
+
+    void			UpdateShaderMatrices();
+
+    Matrix4 viewMatrix;
 protected:
-	virtual void	Resize(int x, int y);	
-	void			UpdateShaderMatrices();
-	void			BindShader(Shader*s);
+	virtual void	Resize(int x, int y);
+
     void SetTextureRepeating(GLuint target, bool state);
 
 	void StartDebugGroup(const std::string& s) {
@@ -73,7 +77,7 @@ protected:
 
 	Matrix4 projMatrix;		//Projection matrix
 	Matrix4 modelMatrix;	//Model matrix. NOT MODELVIEW
-	Matrix4 viewMatrix;		//View matrix
+    //View matrix
 	Matrix4 textureMatrix;	//Texture matrix
 	Matrix4 shadowMatrix;
 
