@@ -521,82 +521,205 @@ bool Mesh::GetVertexIndicesForTri(unsigned int i, unsigned int &a, unsigned int 
     return true;
 }
 
-Mesh *Mesh::GenerateUVSphere(const int slices, const int stacks) {
+//Mesh *Mesh::GenerateUVSphere(const int slices, const int stacks) {
+//    Mesh *m = new Mesh;
+//    m->numVertices = 2 + slices * (stacks + 1);
+//    m->vertices = new Vector3[m->numVertices];
+//    m->textureCoords = new Vector2[m->numVertices];
+//    m->colors = new Vector4[m->numVertices];
+//    m->type = GL_TRIANGLE_FAN;
+//
+//    m->vertices[0] = Vector3(0, 1, 0);
+//    m->textureCoords[0] = Vector2(0, 1);
+//
+//    m->vertices[m->numVertices - 1] = Vector3(0, -1, 0);
+//    m->textureCoords[m->numVertices - 1] = Vector2(0, 0);
+//
+//    float sliceSpace = 1.0f / ((float)slices + 1.0f);
+//    float stackSpace = 1.0f / (float)stacks;
+//
+//    int v = 1;
+//    for (int i = 0; i < slices; i++) {
+//        for (int j = 0; j <= stacks; j++) {
+//            m->textureCoords[v] = Vector2((float)j * stackSpace, 1.0f - (i + 1.0f) * sliceSpace);
+//
+//            float theta = m->textureCoords[v].x * 2.0f * (float)M_PI;
+//            float phi = (m->textureCoords[v].y - 0.5f) * (float)M_PI;
+//
+//            float c = cos(phi);
+//            m->vertices[v] = Vector3(c * cos(theta), sin(phi), c * sin(theta));
+//            m->colors[v] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+//            v++;
+//        }
+//    }
+//
+//    v += 1;
+//
+//    int numTriangles = slices * stacks * 2;
+//    m->numIndices = numTriangles * 3;
+//    m->indices = new GLuint[m->numIndices];
+//
+//    v = 0;
+//
+//    for (int i = 0; i < stacks; i++) {
+//        m->indices[v] = 0;
+//        m->indices[v+1] = i + 2;
+//        m->indices[v+2] = i + 1;
+//        v += 3;
+//    }
+//
+//    m->indices[v++] = 1;
+//    m->indices[v++] = 10;
+//    m->indices[v++] = 9;
+//
+//    std::cout << m->vertices[9];
+//
+//
+////    int rowLength = stacks + 1;
+////    for (int j = 0; j < slices - 1; j++) {
+////        int rowStart = j * rowLength + 1;
+////        for (int i = 0; i < stacks; i++) {
+////            int firstCorner = rowStart + i;
+////            m->indices[v] = firstCorner;
+////            m->indices[v + 1] = firstCorner + rowLength + 1;
+////            m->indices[v + 2] = firstCorner + rowLength;
+////
+////            m->indices[v + 3] = firstCorner;
+////            m->indices[v + 4] = firstCorner + 1;
+////            m->indices[v + 5] = firstCorner + rowLength + 1;
+////            v += 6;
+////
+////        }
+////    }
+////
+////
+////    int pole = (int)m->numVertices - 1;
+////    int bottomRow = (slices - 1) * rowLength + 1;
+////
+////    for (int i = 0; i < stacks; i++) {
+////        m->indices[v] = pole;
+////        m->indices[v + 1] = bottomRow + i;
+////        m->indices[v + 2] = bottomRow + i + 1;
+////        v += 3;
+////    }
+//
+//
+//    std::cout << v;
+//    std::cout << m->numIndices;
+//
+//    m->numIndices = v;
+//
+//    m->GenerateNormals();
+//
+//    m->BufferData();
+//    return m;
+//}
+
+Mesh *Mesh::GenerateUVSphere(int slices, int stacks) {
+    if(slices < 3)
+        slices = 3;
+    if(stacks < 2)
+        stacks = 2;
+
+    int vertPointer = 0;
+    int indPointer = 0;
+    int uvPointer = 0;
+    int normalPointer = 0;
+
     Mesh *m = new Mesh;
-    m->numVertices = 2 + slices * (stacks - 1);
+    m->numVertices = 4000;
     m->vertices = new Vector3[m->numVertices];
-    m->type = GL_TRIANGLE_FAN;
+    m->textureCoords = new Vector2[m->numVertices];
+    m->colors = new Vector4[m->numVertices];
+    m->normals = new Vector3[m->numVertices];
+    int numTriangles = slices * stacks * 2;
+    m->numIndices = numTriangles * 3;
+    m->indices = new GLuint[12000];
 
-    m->vertices[0] = Vector3(0, 1, 0);
+//    std::vector<glm::vec3> vertices;
+//    std::vector<glm::vec3> normals;
+//    std::vector<glm::vec2> uv;
+//    std::vector<unsigned int> indices;
 
-    int vC = 1;
+    float nx, ny, nz, lengthInv = 1.0f;    // normal
+    // Temporary vertex
+    struct Vertex
+    {
+        float x, y, z, s, t; // Postion and Texcoords
+    };
 
-    for (int i = 0; i < stacks - 1; i++) {
-        auto phi = M_PI * double(i + 1) / double(stacks);
-        for (int j = 0; j < slices; j++) {
-            auto theta = 2.0 * M_PI * (double)j / (double)slices;
-            auto x = std::sin(phi) * std::cos(theta);
-            auto y = std::cos(phi);
-            auto z = std::sin(phi) * std::sin(theta);
-            m->vertices[vC] = Vector3(x,y,z);
-            vC++;
+    float deltaLatitude = M_PI / stacks;
+    float deltaLongitude = 2 * M_PI / slices;
+    float latitudeAngle;
+    float longitudeAngle;
+
+    // Compute all vertices first except normals
+    for (int i = 0; i <= stacks; ++i)
+    {
+        latitudeAngle = M_PI / 2 - i * deltaLatitude; /* Starting -pi/2 to pi/2 */
+        float xy = cosf(latitudeAngle);    /* r * cos(phi) */
+        float z = sinf(latitudeAngle);     /* r * sin(phi )*/
+
+        /*
+         * We add (latitudes + 1) vertices per longitude because of equator,
+         * the North pole and South pole are not counted here, as they overlap.
+         * The first and last vertices have same position and normal, but
+         * different tex coords.
+         */
+        for (int j = 0; j <= slices; ++j)
+        {
+            longitudeAngle = j * deltaLongitude;
+
+            Vertex vertex;
+            vertex.x = xy * cosf(longitudeAngle);       /* x = r * cos(phi) * cos(theta)  */
+            vertex.y = xy * sinf(longitudeAngle);       /* y = r * cos(phi) * sin(theta) */
+            vertex.z = z;                               /* z = r * sin(phi) */
+            vertex.s = (float)j/slices;             /* s */
+            vertex.t = (float)i/stacks;              /* t */
+            m->vertices[vertPointer++] = Vector3(vertex.x, vertex.y, vertex.z);
+            m->textureCoords[uvPointer++] = Vector2(vertex.s, vertex.t);
+
+            // normalized vertex normal
+            nx = vertex.x * lengthInv;
+            ny = vertex.y * lengthInv;
+            nz = vertex.z * lengthInv;
+            m->normals[normalPointer++] = Vector3(nx, ny, nz);
         }
     }
 
-    m->vertices[vC] = Vector3(0, -1, 0);
+    /*
+     *  Indices
+     *  k1--k1+1
+     *  |  / |
+     *  | /  |
+     *  k2--k2+1
+     */
+    unsigned int k1, k2;
+    for(int i = 0; i < stacks; ++i)
+    {
+        k1 = i * (slices + 1);
+        k2 = k1 + slices + 1;
+        // 2 Triangles per latitude block excluding the first and last longitudes blocks
+        for(int j = 0; j < slices; ++j, ++k1, ++k2)
+        {
+            if (i != 0)
+            {
+                m->indices[indPointer++] = k1;
+                m->indices[indPointer++] = k2;
+                m->indices[indPointer++] = k1 + 1;
+            }
 
-    m->numIndices = slices*6 + ((stacks-2)*slices)*6;
-
-    m->numIndices = 6;
-
-
-
-    m->indices = new GLuint[m->numIndices];
-    int iC = 0;
-
-//    for (int i = 0; i < slices; i++) {
-//        // Maybe swap this around if normals r wrong
-//        m->indices[iC] = 0;
-//        m->indices[iC + 2] = i + 1;
-//        m->indices[iC + 1] = (i + 1) % slices + 1;
-//        iC += 3;
-//    }
-
-    m->indices[0] = 1;
-    m->indices[1] = 6;
-    m->indices[2] = 7;
-    m->indices[3] = 1;
-    m->indices[4] = 6;
-    m->indices[5] = 7;
-//
-//    for (int j = 0; j < stacks - 2; j++) {
-//        auto j0 = j * slices + 1;
-//        auto j1 = (j + 1) * slices + 1;
-//        for (int i = 0; i < slices; i++) {
-//            auto i0 = j0 + i;
-//            auto i1 = j0 + (i + 1) % slices;
-//            auto i2 = j1 + (i + 1) % slices;
-//            auto i3 = j1 + i;
-//            m->indices[iC] = i1;
-//            m->indices[iC + 1] = i2;
-//            m->indices[iC + 2] = i0;
-//            m->indices[iC + 3] = i2;
-//            m->indices[iC + 4] = i3;
-//            m->indices[iC + 5] = i0;
-//            iC += 6;
-//        }
-//    }
-
-    m->textureCoords = new Vector2[m->numVertices];
-    m->colors = new Vector4[m->numVertices];
-    for (int i = 0; i < m->numVertices; i++) {
-        m->colors[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-        m->textureCoords[i] = Vector2(1.0f, 1.0f);
+            if (i != (stacks - 1))
+            {
+                m->indices[indPointer++] = k1 + 1;
+                m->indices[indPointer++] = k2;
+                m->indices[indPointer++] = k2 + 1;
+            }
+        }
     }
-
-
+    m->numIndices = indPointer;
+    m->numVertices = vertPointer;
     m->BufferData();
-
     return m;
 }
 
