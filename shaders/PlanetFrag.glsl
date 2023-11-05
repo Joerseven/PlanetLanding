@@ -24,8 +24,12 @@ void main() {
     float pDistance = length(lightPos - IN.worldPos);
     float attenuation = 1.0 - clamp(pDistance / lightRadius, 0.0, 1.0);
 
+    float specFactor = clamp(dot(halfDir, IN.normal), 0.0, 1.0);
+    specFactor = pow(specFactor, 60.0);
+
     vec3 surface = (IN.colour.rgb * lightColor.rgb);
     fragColor.rgb = surface * lambert * attenuation;
+    fragColor.rgb += (lightColor.rgb * specFactor)*attenuation*0.33;
     fragColor.rgb += surface * 0.2f;
     fragColor.a = 1.0;
 }

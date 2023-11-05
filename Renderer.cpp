@@ -13,9 +13,9 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     planet3 = new Model();
 
     sun->mesh = Mesh::GenerateUVSphere(20, 20);
-    planet->mesh = Mesh::GenerateUVSphere(12, 12);
-    planet2->mesh = Mesh::GenerateUVSphere(12, 12);
-    planet3->mesh = Mesh::GenerateUVSphere(12, 12);
+    planet->mesh = Mesh::GenerateUVSphere(18, 18);
+    planet2->mesh = Mesh::GenerateUVSphere(18, 18);
+    planet3->mesh = Mesh::GenerateUVSphere(18, 18);
 
     planet->localTransform = Matrix4::Rotation(0, Vector3(0, 1, 0))
                              * Matrix4::Translation(Vector3(10, 0, 0))
