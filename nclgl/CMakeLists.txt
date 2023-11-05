@@ -26,6 +26,8 @@ add_library(nclgl
         Texture.cpp
         Light.cpp
         Cubemap.cpp
+        PostPass.cpp
+        Component.cpp
 )
 
 
