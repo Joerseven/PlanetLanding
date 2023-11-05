@@ -258,6 +258,9 @@ void OGLRenderer::DebugCallback(GLenum source, GLenum type, GLuint id, GLenum se
 		std::cout << "OpenGL Debug Output: " + sourceName + ", " + typeName + ", " + severityName + ", " + string(message) << "\n";
 }
 
+#endif
+
+
 void OGLRenderer::SetTextureRepeating(GLuint target, bool state) {
     glBindTexture(GL_TEXTURE_2D, target);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, state ? GL_REPEAT : GL_CLAMP);
@@ -271,9 +274,6 @@ void OGLRenderer::SetShaderLight(const Light &l) {
     glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "lightRadius"), l.Radius);
 
 }
-
-#endif
-
 
 
 

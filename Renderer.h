@@ -40,7 +40,7 @@ public:
     void RenderScene() override;
     void UpdateScene(float dt) override;
 public:
-    Model *sun, *planet;
+    Model *sun, *planet, *planet2, *planet3;
     Camera* camera;
     Light* light;
     Cubemap* cubemap;
