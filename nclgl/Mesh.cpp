@@ -520,101 +520,6 @@ bool Mesh::GetVertexIndicesForTri(unsigned int i, unsigned int &a, unsigned int 
 
     return true;
 }
-
-//Mesh *Mesh::GenerateUVSphere(const int slices, const int stacks) {
-//    Mesh *m = new Mesh;
-//    m->numVertices = 2 + slices * (stacks + 1);
-//    m->vertices = new Vector3[m->numVertices];
-//    m->textureCoords = new Vector2[m->numVertices];
-//    m->colors = new Vector4[m->numVertices];
-//    m->type = GL_TRIANGLE_FAN;
-//
-//    m->vertices[0] = Vector3(0, 1, 0);
-//    m->textureCoords[0] = Vector2(0, 1);
-//
-//    m->vertices[m->numVertices - 1] = Vector3(0, -1, 0);
-//    m->textureCoords[m->numVertices - 1] = Vector2(0, 0);
-//
-//    float sliceSpace = 1.0f / ((float)slices + 1.0f);
-//    float stackSpace = 1.0f / (float)stacks;
-//
-//    int v = 1;
-//    for (int i = 0; i < slices; i++) {
-//        for (int j = 0; j <= stacks; j++) {
-//            m->textureCoords[v] = Vector2((float)j * stackSpace, 1.0f - (i + 1.0f) * sliceSpace);
-//
-//            float theta = m->textureCoords[v].x * 2.0f * (float)M_PI;
-//            float phi = (m->textureCoords[v].y - 0.5f) * (float)M_PI;
-//
-//            float c = cos(phi);
-//            m->vertices[v] = Vector3(c * cos(theta), sin(phi), c * sin(theta));
-//            m->colors[v] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-//            v++;
-//        }
-//    }
-//
-//    v += 1;
-//
-//    int numTriangles = slices * stacks * 2;
-//    m->numIndices = numTriangles * 3;
-//    m->indices = new GLuint[m->numIndices];
-//
-//    v = 0;
-//
-//    for (int i = 0; i < stacks; i++) {
-//        m->indices[v] = 0;
-//        m->indices[v+1] = i + 2;
-//        m->indices[v+2] = i + 1;
-//        v += 3;
-//    }
-//
-//    m->indices[v++] = 1;
-//    m->indices[v++] = 10;
-//    m->indices[v++] = 9;
-//
-//    std::cout << m->vertices[9];
-//
-//
-////    int rowLength = stacks + 1;
-////    for (int j = 0; j < slices - 1; j++) {
-////        int rowStart = j * rowLength + 1;
-////        for (int i = 0; i < stacks; i++) {
-////            int firstCorner = rowStart + i;
-////            m->indices[v] = firstCorner;
-////            m->indices[v + 1] = firstCorner + rowLength + 1;
-////            m->indices[v + 2] = firstCorner + rowLength;
-////
-////            m->indices[v + 3] = firstCorner;
-////            m->indices[v + 4] = firstCorner + 1;
-////            m->indices[v + 5] = firstCorner + rowLength + 1;
-////            v += 6;
-////
-////        }
-////    }
-////
-////
-////    int pole = (int)m->numVertices - 1;
-////    int bottomRow = (slices - 1) * rowLength + 1;
-////
-////    for (int i = 0; i < stacks; i++) {
-////        m->indices[v] = pole;
-////        m->indices[v + 1] = bottomRow + i;
-////        m->indices[v + 2] = bottomRow + i + 1;
-////        v += 3;
-////    }
-//
-//
-//    std::cout << v;
-//    std::cout << m->numIndices;
-//
-//    m->numIndices = v;
-//
-//    m->GenerateNormals();
-//
-//    m->BufferData();
-//    return m;
-//}
-
 Mesh *Mesh::GenerateUVSphere(int slices, int stacks) {
     if(slices < 3)
         slices = 3;
@@ -636,13 +541,8 @@ Mesh *Mesh::GenerateUVSphere(int slices, int stacks) {
     m->numIndices = numTriangles * 3;
     m->indices = new GLuint[12000];
 
-//    std::vector<glm::vec3> vertices;
-//    std::vector<glm::vec3> normals;
-//    std::vector<glm::vec2> uv;
-//    std::vector<unsigned int> indices;
 
     float nx, ny, nz, lengthInv = 1.0f;    // normal
-    // Temporary vertex
     struct Vertex
     {
         float x, y, z, s, t; // Postion and Texcoords
@@ -724,6 +624,7 @@ Mesh *Mesh::GenerateUVSphere(int slices, int stacks) {
 }
 
 void Mesh::SetColor(float r, float g, float b, float a) {
+    glBindVertexArray(arrayObject);
     if (!numVertices) {
         return;
     }
@@ -731,4 +632,6 @@ void Mesh::SetColor(float r, float g, float b, float a) {
     for (int i = 0; i < numVertices; i++) {
         colors[i] = Vector4(r, g, b, a);
     }
+
+    UploadAttribute(&bufferObject[COLOUR_BUFFER], numVertices, sizeof(Vector4), 4, COLOUR_BUFFER, colors, "Colours");
 }

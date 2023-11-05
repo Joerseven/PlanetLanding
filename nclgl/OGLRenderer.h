@@ -33,6 +33,7 @@ _-_-_-_-_-_-_-""  ""
 #include "Window.h"
 #include "Shader.h"
 #include "Mesh.h"
+#include "Light.h"
 
 using std::vector;
 
@@ -41,7 +42,6 @@ using std::vector;
 extern const Matrix4 biasMatrix;
 
 class Shader;
-class Light;
 
 class OGLRenderer	{
 public:
@@ -60,6 +60,9 @@ public:
     void			UpdateShaderMatrices();
 
     Matrix4 viewMatrix;
+
+    void SetShaderLight(const Light& l);
+
 protected:
 	virtual void	Resize(int x, int y);
 
@@ -73,9 +76,7 @@ protected:
 		glPopDebugGroup();
 	}
 
-    void SetShaderLight(const Light& l);
-
-	Matrix4 projMatrix;		//Projection matrix
+    Matrix4 projMatrix;		//Projection matrix
 	Matrix4 modelMatrix;	//Model matrix. NOT MODELVIEW
     //View matrix
 	Matrix4 textureMatrix;	//Texture matrix

@@ -6,23 +6,38 @@
 
 Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     camera = new Camera();
-    sphere = Mesh::GenerateUVSphere(20, 20);
-    //quad = Mesh::GenerateQuad();
-    //cubemap = new Cubemap();
 
-    texture = Texture::LoadTexture(TEXTUREPATH "Barren Reds.JPG");
-    shader = new Shader(SHADERPATH "PlanetVert.glsl", SHADERPATH "PlanetFrag.glsl");
+    sun = new Model();
+    planet = new Model();
 
+    sun->mesh = Mesh::GenerateUVSphere(20, 20);
+    planet->mesh = Mesh::GenerateUVSphere(12, 12);
 
-    if (!shader->LoadSuccess() || !texture) {
+    planet->localTransform = Matrix4::Translation(Vector3(10, 0, -10))
+                             * Matrix4::Scale(Vector3(0.5, 0.5, 0.5));
+
+    sun->localTransform = Matrix4::Translation(Vector3(0, 0, -10));
+
+    sun->mesh->SetColor(1.0, 170.0f / 255.0f, 0.0, 1.0);
+    planet->mesh->SetColor(0, 0, 82.0f / 255.0f, 1.0);
+
+    sun->shader = new Shader(SHADERPATH "SunVert.glsl", SHADERPATH "SunFrag.glsl");
+    planet->shader = new Shader(SHADERPATH "PlanetVert.glsl", SHADERPATH "PlanetFrag.glsl");
+
+    planet->light = light;
+
+    if (!sun->shader->LoadSuccess() || !planet->shader->LoadSuccess()) {
+        std::cout << "Fuck" << std::endl;
         return;
     }
 
-    SetTextureRepeating(texture, true);
+    cubemap = new Cubemap();
+
+
+    light = new Light(Vector3(), Vector4(1,1,1,1), 20);
 
     projMatrix = Matrix4::Perspective(0.01f, 15000.0f, (float)width/float(height), 45.0f);
-    //projMatrix = Matrix4::Orthographic(0.01, 15000.0f, width, height, 1000, 1000);
-    modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
@@ -30,30 +45,37 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 }
 
 Renderer::~Renderer() {
-    delete sphere;
-    delete shader;
-    //delete quad;
+    delete sun;
+    delete planet;
     delete camera;
-    //delete cubemap;
+    delete light;
 }
 
 void Renderer::RenderScene() {
     glClearColor(0.1, 0.12, 0.1, 1.0);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    //cubemap->Draw(this);
+    cubemap->Draw(this);
 
-    BindShader(shader);
-    UpdateShaderMatrices();
-
-    shader->SetTexture(0, "diffuseTex", texture);
-    sphere->Draw();
-    //quad->Draw();
-
+    sun->Draw(this);
+    planet->Draw(this);
 
 }
 
 void Renderer::UpdateScene(float dt) {
     camera->UpdateCamera(dt);
     viewMatrix = camera->BuildViewMatrix();
+}
+
+void Model::Draw(Renderer *context) {
+    context->BindShader(shader);
+    context->UpdateShaderMatrices();
+
+//    if (light) {
+//        glUniform3fv(glGetUniformLocation(shader->GetProgram(), "cameraPos"), 1, (float*)&context->camera->Position);
+//        context->SetShaderLight(*light);
+//    }
+
+    glUniformMatrix4fv(glGetUniformLocation(shader->GetProgram(), "modelMatrix"), 1, false, localTransform.values);
+    mesh->Draw();
 }

@@ -10,9 +10,27 @@
 #include "Shader.h"
 #include "Texture.h"
 #include "Cubemap.h"
+#include "Light.h"
+#include <memory>
 
 #define SHADERPATH "../shaders/"
 
+class Renderer;
+
+class Model {
+public:
+    Model() = default;
+    ~Model() = default;
+    Mesh* mesh;
+    GLuint* texture;
+
+    Matrix4 localTransform;
+    Shader* shader;
+    Light* light;
+
+    void Draw(Renderer *context);
+
+};
 
 class Renderer: public OGLRenderer {
 public:
@@ -21,12 +39,10 @@ public:
 
     void RenderScene() override;
     void UpdateScene(float dt) override;
-protected:
-    Mesh* sphere;
-    Mesh* quad;
+public:
+    Model *sun, *planet;
     Camera* camera;
-    Shader* shader;
-    GLuint texture;
+    Light* light;
     Cubemap* cubemap;
 };
 
