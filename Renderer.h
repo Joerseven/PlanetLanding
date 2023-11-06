@@ -17,6 +17,52 @@
 
 class Renderer;
 
+struct iVector2 {
+    int x;
+    int y;
+};
+
+struct bloomMip {
+    Vector2 size;
+    iVector2 iSize;
+    GLuint texture;
+};
+
+class bloomFBO {
+public:
+    bloomFBO() : mInit(false) {};
+    ~bloomFBO() = default;
+    bool Init(GLuint windowWidth, GLuint windowHeight, GLuint mipNumber);
+    void Destroy();
+    void BindForWriting();
+    const std::vector<bloomMip>& MipChain() const;
+private:
+    unsigned int mFBO;
+    std::vector<bloomMip> mMipChain;
+    bool mInit;
+};
+
+class BloomRenderer {
+public:
+    BloomRenderer(int windowWidth, int windowHeight);
+    ~BloomRenderer() = default;
+    void Destroy();
+    void RenderBloomTexture(unsigned int srcTexture, float filterRadius, Renderer& context);
+    unsigned int BloomTexture();
+private:
+    void RenderDownsamples(unsigned int srcTexture, Renderer& context);
+    void RenderUpsamples(float filterRadius, Renderer& context);
+
+    bloomFBO mFBO;
+    iVector2 mSrcViewportSize;
+    Vector2 mSrcViewportSizeFloat;
+    Shader* mDownsampleShader;
+    Shader* mUpsampleShader;
+    Mesh* quad;
+};
+
+
+
 class Model {
 public:
     Model() = default;
@@ -42,8 +88,18 @@ public:
 public:
     Model *sun, *planet, *planet2, *planet3;
     Camera* camera;
+    Mesh* finalQuad;
     Light* light;
     Cubemap* cubemap;
+    Shader* hdrShader;
+    GLuint colorBuffer;
+    GLuint hdrFramebuffer;
+    GLuint depthRenderbuffer;
+    BloomRenderer* bloomRenderer;
+
+    void RenderSceneToBuffer();
+
+    void RenderTextureToScreen(GLuint texture);
 };
 
 
