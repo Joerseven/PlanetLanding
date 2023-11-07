@@ -52,12 +52,15 @@ public:
 private:
     void RenderDownsamples(unsigned int srcTexture, Renderer& context);
     void RenderUpsamples(float filterRadius, Renderer& context);
+    void Prefilter(unsigned int srcTexture, Renderer &context);
 
     bloomFBO mFBO;
     iVector2 mSrcViewportSize;
     Vector2 mSrcViewportSizeFloat;
     Shader* mDownsampleShader;
     Shader* mUpsampleShader;
+    Shader* mPrefilterShader;
+    GLuint mPrefilterTexture;
     Mesh* quad;
 };
 

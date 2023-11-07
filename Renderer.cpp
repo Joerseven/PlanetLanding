@@ -31,7 +31,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
     sun->localTransform = Matrix4::Translation(Vector3(0, 0, 0)) * Matrix4::Scale(Vector3(3, 3, 3));
 
-    sun->mesh->SetColor(5, 3.4, 0.0, 1.0);
+    sun->mesh->SetColor(5, 3.4, 1.0, 1.0);
     planet->mesh->SetColor(0, 0, 190.0f / 255.0f, 1.0);
     planet2->mesh->SetColor(120.0f/255.0f, 0, 0, 1.0);
     planet3->mesh->SetColor(0, 230.0f/255.0f, 0, 1.0);
@@ -221,7 +221,7 @@ BloomRenderer::BloomRenderer(int windowWidth, int windowHeight) {
     mSrcViewportSize = iVector2{windowWidth, windowHeight};
     mSrcViewportSizeFloat = Vector2((float)windowWidth, (float)windowHeight);
 
-    bool status = mFBO.Init(windowWidth, windowHeight, 8);
+    bool status = mFBO.Init(windowWidth, windowHeight, 6);
     if (!status) {
         std::cerr << "Failed to initialize bloom FBO - cannot create bloom renderer!\n";
         return;
@@ -232,6 +232,18 @@ BloomRenderer::BloomRenderer(int windowWidth, int windowHeight) {
     // Shaders
     mDownsampleShader = new Shader(SHADERPATH "QuadVert.glsl", SHADERPATH "Downsample.glsl");
     mUpsampleShader = new Shader(SHADERPATH "QuadVert.glsl", SHADERPATH "Upsample.glsl");
+    mPrefilterShader = new Shader(SHADERPATH "QuadVert.glsl", SHADERPATH "BloomPrefilter.glsl");
+
+    glGenTextures(1, &mPrefilterTexture);
+    glBindTexture(GL_TEXTURE_2D, mPrefilterTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F,
+                 windowWidth, windowHeight,
+                 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     // Don't think I need this iirc
     // Downsample
@@ -249,12 +261,14 @@ void BloomRenderer::Destroy() {
     mFBO.Destroy();
     delete mDownsampleShader;
     delete mUpsampleShader;
+    glDeleteTextures(1, &mPrefilterTexture);
 }
 
 void BloomRenderer::RenderBloomTexture(unsigned int srcTexture, float filterRadius, Renderer& context) {
     mFBO.BindForWriting();
 
-    RenderDownsamples(srcTexture, context);
+    Prefilter(srcTexture, context);
+    RenderDownsamples(mPrefilterTexture, context);
     RenderUpsamples(filterRadius, context);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -263,6 +277,14 @@ void BloomRenderer::RenderBloomTexture(unsigned int srcTexture, float filterRadi
 
 unsigned int BloomRenderer::BloomTexture() {
     return mFBO.MipChain()[0].texture;
+}
+
+void BloomRenderer::Prefilter(unsigned int srcTexture, Renderer& context) {
+    context.BindShader(mPrefilterShader);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, srcTexture);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mPrefilterTexture, 0);
+    quad->Draw();
 }
 
 void BloomRenderer::RenderDownsamples(unsigned int srcTexture, Renderer& context) {
