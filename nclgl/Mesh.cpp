@@ -553,33 +553,26 @@ Mesh *Mesh::GenerateUVSphere(int slices, int stacks) {
     float latitudeAngle;
     float longitudeAngle;
 
-    // Compute all vertices first except normals
     for (int i = 0; i <= stacks; ++i)
     {
-        latitudeAngle = M_PI / 2 - i * deltaLatitude; /* Starting -pi/2 to pi/2 */
-        float xy = cosf(latitudeAngle);    /* r * cos(phi) */
-        float z = sinf(latitudeAngle);     /* r * sin(phi )*/
+        latitudeAngle = M_PI / 2 - i * deltaLatitude;
+        float xy = cosf(latitudeAngle);
+        float z = sinf(latitudeAngle);
 
-        /*
-         * We add (latitudes + 1) vertices per longitude because of equator,
-         * the North pole and South pole are not counted here, as they overlap.
-         * The first and last vertices have same position and normal, but
-         * different tex coords.
-         */
+
         for (int j = 0; j <= slices; ++j)
         {
             longitudeAngle = j * deltaLongitude;
 
             Vertex vertex;
-            vertex.x = xy * cosf(longitudeAngle);       /* x = r * cos(phi) * cos(theta)  */
-            vertex.y = xy * sinf(longitudeAngle);       /* y = r * cos(phi) * sin(theta) */
-            vertex.z = z;                               /* z = r * sin(phi) */
-            vertex.s = (float)j/slices;             /* s */
-            vertex.t = (float)i/stacks;              /* t */
+            vertex.x = xy * cosf(longitudeAngle);
+            vertex.y = xy * sinf(longitudeAngle);
+            vertex.z = z;
+            vertex.s = (float)j/slices;
+            vertex.t = (float)i/stacks;
             m->vertices[vertPointer++] = Vector3(vertex.x, vertex.y, vertex.z);
             m->textureCoords[uvPointer++] = Vector2(vertex.s, vertex.t);
 
-            // normalized vertex normal
             nx = vertex.x * lengthInv;
             ny = vertex.y * lengthInv;
             nz = vertex.z * lengthInv;
@@ -587,19 +580,11 @@ Mesh *Mesh::GenerateUVSphere(int slices, int stacks) {
         }
     }
 
-    /*
-     *  Indices
-     *  k1--k1+1
-     *  |  / |
-     *  | /  |
-     *  k2--k2+1
-     */
     unsigned int k1, k2;
     for(int i = 0; i < stacks; ++i)
     {
         k1 = i * (slices + 1);
         k2 = k1 + slices + 1;
-        // 2 Triangles per latitude block excluding the first and last longitudes blocks
         for(int j = 0; j < slices; ++j, ++k1, ++k2)
         {
             if (i != 0)
