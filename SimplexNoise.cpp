@@ -63,7 +63,7 @@ double Noise::GetNoise(double x, double y, double z) {
     return (lerp (y1, y2, w)+1)/2;						// For convenience we bound it to 0 - 1 (theoretical min/max before is -1 - 1)
 }
 
-double grad(int hash, double x, double y, double z) {
+double Noise::grad(int hash, double x, double y, double z) {
     int h = hash & 15;									// Take the hashed value and take the first 4 bits of it (15 == 0b1111)
     double u = h < 8 /* 0b1000 */ ? x : y;				// If the most significant bit (MSB) of the hash is 0 then set u = x.  Otherwise y.
 
@@ -83,8 +83,6 @@ double grad(int hash, double x, double y, double z) {
 double Noise::fade(double t) {
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
-
-double Noise::grad
 
 int Noise::inc(int num) const {
     num++;

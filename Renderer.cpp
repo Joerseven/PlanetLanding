@@ -14,9 +14,12 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
     finalQuad = Mesh::GenerateQuad();
 
-    planet1Tex = CreatePlanetSurface();
+    Noise n = Noise();
 
-    // If it gets to marking and I still haven't changed this function not to be stupid I'm doomed
+    std::cout << n.GetNoise(0, 0.1, 0.7) << std::endl;
+    std::cout << n.GetNoise(0.8, 0.1, 0.7) << std::endl;
+
+    // Please don't look at the UV sphere function
     sun->mesh = Mesh::GenerateUVSphere(30, 20);
     planet->mesh = Mesh::GenerateUVSphere(21, 21);
     planet2->mesh = Mesh::GenerateUVSphere(21, 18);
@@ -99,7 +102,7 @@ Renderer::~Renderer() {
 }
 
 GLuint Renderer::CreatePlanetSurface() {
-
+    return 1;
 }
 
 void Renderer::RenderScene() {
@@ -134,6 +137,18 @@ void Renderer::RenderTextureToScreen(GLuint texture) {
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1f(glGetUniformLocation(hdrShader->GetProgram(), "exposure"), 0.5f);
     finalQuad->Draw();
+}
+
+void Renderer::CreatePerlinImage(int width, int height, int offsetX, int offsetY, float scale) {
+    auto *pixels = new unsigned char[width * height];
+    auto n = Noise();
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < height; x++) {
+            float nx = (float)(x + offsetX)*(scale/(float)width);
+            float ny = (float)(y + offsetY)*(scale/(float)height);
+            float p = n.GetNoise(nx, ny, 1.0);
+        }
+    }
 }
 
 void Model::Draw(Renderer *context) {

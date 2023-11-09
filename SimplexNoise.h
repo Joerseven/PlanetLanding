@@ -31,6 +31,7 @@ private:
     static double lerp(double a, double b, double x);
     int inc(int num) const;
     static double fade(double t);
+    static double grad(int hash, double x, double y, double z);
 };
 
 

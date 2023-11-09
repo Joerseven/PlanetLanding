@@ -12,6 +12,8 @@
 #include "Cubemap.h"
 #include "Light.h"
 #include <memory>
+#include "SimplexNoise.h"
+#include "stb/stb_image.h"
 
 #define SHADERPATH "../shaders/"
 
@@ -107,6 +109,7 @@ public:
     GLuint CreatePlanetSurface();
 
     void RenderTextureToScreen(GLuint texture);
+    void CreatePerlinImage(int width, int height, int offsetX, int offsetY, float scale);
 };
 
 
