@@ -233,9 +233,21 @@ BloomRenderer::BloomRenderer(int windowWidth, int windowHeight) {
     mDownsampleShader = new Shader(SHADERPATH "QuadVert.glsl", SHADERPATH "Downsample.glsl");
     mUpsampleShader = new Shader(SHADERPATH "QuadVert.glsl", SHADERPATH "Upsample.glsl");
     mPrefilterShader = new Shader(SHADERPATH "QuadVert.glsl", SHADERPATH "BloomPrefilter.glsl");
+    mPostfilterShader = new Shader(SHADERPATH "QuadVert.glsl", SHADERPATH "BloomPostfilter.glsl");
 
     glGenTextures(1, &mPrefilterTexture);
     glBindTexture(GL_TEXTURE_2D, mPrefilterTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F,
+                 windowWidth, windowHeight,
+                 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenTextures(1, &mPostfilterTexture);
+    glBindTexture(GL_TEXTURE_2D, mPostfilterTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F,
                  windowWidth, windowHeight,
                  0, GL_RGB, GL_FLOAT, nullptr);
@@ -270,9 +282,14 @@ void BloomRenderer::RenderBloomTexture(unsigned int srcTexture, float filterRadi
     Prefilter(srcTexture, context);
     RenderDownsamples(mPrefilterTexture, context);
     RenderUpsamples(filterRadius, context);
+    PostFilter(srcTexture, BloomTexture(), context);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, mSrcViewportSize.x, mSrcViewportSize.y);
+}
+
+unsigned int BloomRenderer::FinalTexture() {
+    return mPostfilterTexture;
 }
 
 unsigned int BloomRenderer::BloomTexture() {
@@ -347,4 +364,16 @@ void BloomRenderer::RenderUpsamples(float filterRadius, Renderer& context) {
     // Disable additive blending
     //glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // Restore if this was default
     glDisable(GL_BLEND);
+}
+
+void BloomRenderer::PostFilter(unsigned int srcTexture, unsigned int bloomTexture, Renderer &context) {
+    context.BindShader(mPostfilterShader);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, srcTexture);
+    glUniform1i(glGetUniformLocation(mPostfilterShader->GetProgram(), "srcTex"), 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, bloomTexture);
+    glUniform1i(glGetUniformLocation(mPostfilterShader->GetProgram(), "bloomTex"), 1);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mPostfilterTexture, 0);
+    quad->Draw();
 }

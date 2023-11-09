@@ -53,6 +53,7 @@ private:
     void RenderDownsamples(unsigned int srcTexture, Renderer& context);
     void RenderUpsamples(float filterRadius, Renderer& context);
     void Prefilter(unsigned int srcTexture, Renderer &context);
+    void PostFilter(unsigned int srcTexture, unsigned int bloomTexture, Renderer &context);
 
     bloomFBO mFBO;
     iVector2 mSrcViewportSize;
@@ -60,7 +61,8 @@ private:
     Shader* mDownsampleShader;
     Shader* mUpsampleShader;
     Shader* mPrefilterShader;
-    GLuint mPrefilterTexture;
+    Shader* mPostfilterShader;
+    GLuint mPrefilterTexture, mPostfilterTexture;
     Mesh* quad;
 };
 
