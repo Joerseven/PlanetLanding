@@ -14,6 +14,9 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
     finalQuad = Mesh::GenerateQuad();
 
+    planet1Tex = CreatePlanetSurface();
+
+    // If it gets to marking and I still haven't changed this function not to be stupid I'm doomed
     sun->mesh = Mesh::GenerateUVSphere(30, 20);
     planet->mesh = Mesh::GenerateUVSphere(21, 21);
     planet2->mesh = Mesh::GenerateUVSphere(21, 18);
@@ -80,8 +83,6 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
     projMatrix = Matrix4::Perspective(0.01f, 15000.0f, (float)width/float(height), 45.0f);
 
-
-
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
@@ -97,10 +98,14 @@ Renderer::~Renderer() {
     delete light;
 }
 
+GLuint Renderer::CreatePlanetSurface() {
+
+}
+
 void Renderer::RenderScene() {
     RenderSceneToBuffer();
-    bloomRenderer->RenderBloomTexture(colorBuffer, 0.005f, *this);
-    RenderTextureToScreen(bloomRenderer->BloomTexture());
+    //bloomRenderer->RenderBloomTexture(colorBuffer, 0.005f, *this);
+    RenderTextureToScreen(colorBuffer);
 }
 
 void Renderer::UpdateScene(float dt) {
@@ -347,4 +352,8 @@ void BloomRenderer::RenderUpsamples(float filterRadius, Renderer& context) {
     // Disable additive blending
     //glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // Restore if this was default
     glDisable(GL_BLEND);
+}
+
+void BloomRenderer::Postfilter(unsigned int srcTexture, unsigned int bloomTexture, Renderer &context) {
+
 }

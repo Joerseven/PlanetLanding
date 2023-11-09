@@ -53,6 +53,7 @@ private:
     void RenderDownsamples(unsigned int srcTexture, Renderer& context);
     void RenderUpsamples(float filterRadius, Renderer& context);
     void Prefilter(unsigned int srcTexture, Renderer &context);
+    void Postfilter(unsigned int srcTexture, unsigned int bloomTexture, Renderer &context);
 
     bloomFBO mFBO;
     iVector2 mSrcViewportSize;
@@ -60,6 +61,8 @@ private:
     Shader* mDownsampleShader;
     Shader* mUpsampleShader;
     Shader* mPrefilterShader;
+    Shader* mPostFilterShader;
+    GLuint mPostfilterTexture;
     GLuint mPrefilterTexture;
     Mesh* quad;
 };
@@ -101,6 +104,7 @@ public:
     BloomRenderer* bloomRenderer;
 
     void RenderSceneToBuffer();
+    GLuint CreatePlanetSurface();
 
     void RenderTextureToScreen(GLuint texture);
 };
