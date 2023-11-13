@@ -5,12 +5,15 @@
 #ifndef PLANETLANDING_SIMPLEXNOISE_H
 #define PLANETLANDING_SIMPLEXNOISE_H
 
+#include <glad/glad.h>
 
 class Noise {
 public:
-    Noise();
+    Noise(int width, int height);
     ~Noise();
-    double GetNoise(double x, double y, double z);
+    double GenNoise(double x, double y, double z);
+    double GetNoise(double x, double y, double z, int octaves, double persistence);
+    GLuint texture;
     int repeat;
 private:
     const int hashThing[256] = { 151,160,137,91,90,15,
@@ -32,6 +35,7 @@ private:
     int inc(int num) const;
     static double fade(double t);
     static double grad(int hash, double x, double y, double z);
+    GLuint CreateTexture(int width, int height);
 };
 
 

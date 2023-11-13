@@ -7,6 +7,7 @@
 
 #include "Vector3.h"
 #include "Matrix4.h"
+#include "Vector2.h"
 
 
 class Camera {
@@ -32,7 +33,8 @@ public:
 
     Matrix4 BuildViewMatrix() const;
 
-    // Getters and setters what is this java
+    void UpdatePosition(const Vector3& direction, float speed);
+    void UpdateLookDirection(const Vector2& direction);
 };
 
 

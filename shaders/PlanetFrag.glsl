@@ -27,7 +27,9 @@ void main() {
     float specFactor = clamp(dot(halfDir, IN.normal), 0.0, 1.0);
     specFactor = pow(specFactor, 60.0);
 
-    vec3 surface = (IN.colour.rgb * lightColor.rgb);
+    vec3 landColor = vec3(1.0, 1.0, 1.0) - IN.colour.rgb;
+
+    vec3 surface = ((IN.colour.rgb * step(0.5, texture(diffuseTex, IN.texCoord).r)) * lightColor.rgb) + (landColor * (1-smoothstep(0.5, 0.51, texture(diffuseTex, IN.texCoord).r) * lightColor.rgb));
     fragColor.rgb = surface * lambert * attenuation;
     fragColor.rgb += (lightColor.rgb * specFactor)*attenuation*0.33;
     fragColor.rgb += surface * 0.2f;

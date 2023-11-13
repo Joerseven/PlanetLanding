@@ -1,5 +1,6 @@
 #include "Mesh.h"
 #include "Matrix2.h"
+#include "Component.h"
 # define M_PI 3.14159265358979323846
 
 using std::string;
@@ -520,6 +521,18 @@ bool Mesh::GetVertexIndicesForTri(unsigned int i, unsigned int &a, unsigned int 
 
     return true;
 }
+
+ModelData Mesh::ToModelData(Mesh *m) {
+    ModelData d = {
+            0,
+            nullptr,
+            m->arrayObject,
+            m->type,
+            m->numIndices
+    };
+    return d;
+}
+
 Mesh *Mesh::GenerateUVSphere(int slices, int stacks) {
     if(slices < 3)
         slices = 3;

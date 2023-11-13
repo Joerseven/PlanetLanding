@@ -86,6 +86,8 @@ protected:
 	int		height;			//Render area height (not quite the same as window height)
 	bool	init;			//Did the renderer initialise properly?
 
+    void SetTextureMirrorRepeating(GLuint target, bool state);
+
 private:
 	Shader* currentShader;	
 	HDC		deviceContext;	//...Device context?
@@ -93,4 +95,5 @@ private:
 #ifdef _DEBUG
 	static void CALLBACK DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 #endif
+
 };

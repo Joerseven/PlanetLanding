@@ -19,6 +19,7 @@ _-_-_-_-_-_-_-""  ""
 #pragma once
 
 #include "OGLRenderer.h"
+#include "Component.h"
 #include <vector>
 #include <string>
 
@@ -56,6 +57,7 @@ public:
     static Mesh* GenerateTriangle();
     static Mesh* GenerateQuad();
     static Mesh* GenerateUVSphere(int slices, int stacks);
+    static ModelData ToModelData(Mesh *m);
 
 	unsigned int GetTriCount() const {
 		int primCount = indices ? numIndices : numVertices;
@@ -121,5 +123,8 @@ protected:
 	std::vector<int>			jointParents;
 	std::vector< SubMesh>		meshLayers;
 	std::vector<std::string>	layerNames;
+
+
+
 };
 

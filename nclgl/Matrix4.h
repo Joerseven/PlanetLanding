@@ -69,7 +69,7 @@ public:
 	//Builds a view matrix suitable for sending straight to the vertex shader.
 	//Puts the camera at 'from', with 'lookingAt' centered on the screen, with
 	//'up' as the...up axis (pointing towards the top of the screen)
-	static Matrix4 BuildViewMatrix(const Vector3 &from, const Vector3 &lookingAt, const Vector3 up = Vector3(0,1,0));
+	static Matrix4 BuildViewMatrix(const Vector3 &from, const Vector3 &lookingAt, const Vector3 &up = Vector3(0,1,0));
 
 	Matrix4 GetTransposedRotation();
 

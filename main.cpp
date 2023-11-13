@@ -19,6 +19,9 @@ int main() {
 
     bool lines = false;
 
+    // Reset dt
+    w.GetTimer()->Tick();
+
     while(w.UpdateWindow() && !Window::GetKeyboard()->KeyDown(KEYBOARD_ESCAPE)) {
 
         if(Window::GetKeyboard()->KeyTriggered(KEYBOARD_F6)) {

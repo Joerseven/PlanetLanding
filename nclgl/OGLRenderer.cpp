@@ -268,6 +268,13 @@ void OGLRenderer::SetTextureRepeating(GLuint target, bool state) {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void OGLRenderer::SetTextureMirrorRepeating(GLuint target, bool state){
+    glBindTexture(GL_TEXTURE_2D, target);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, state ? GL_MIRRORED_REPEAT : GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, state ? GL_MIRRORED_REPEAT : GL_CLAMP);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void OGLRenderer::SetShaderLight(const Light &l) {
     glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightPos"), 1, (float*)&l.Position);
     glUniform4fv(glGetUniformLocation(currentShader->GetProgram(), "lightColor"), 1, (float*)&l.Color);

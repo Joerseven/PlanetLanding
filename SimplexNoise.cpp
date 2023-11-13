@@ -5,18 +5,38 @@
 #include "SimplexNoise.h"
 // Credit to https://gist.github.com/Flafla2/f0260a861be0ebdeef76
 
-Noise::Noise() {
+Noise::Noise(int width, int height) {
     p = new int[512];
+
     for(int x=0;x<512;x++) {
         p[x] = hashThing[x%256];
     }
+
+    texture = CreateTexture(width, height);
+}
+
+double Noise::GetNoise(double x, double y, double z, int octaves, double persistence) {
+    double total = 0;
+    double frequency = 1;
+    double amplitude = 1;
+    double maxValue = 0;  // Used for normalizing result to 0.0 - 1.0
+    for(int i=0;i<octaves;i++) {
+        total += GenNoise(x * frequency, y * frequency, z * frequency) * amplitude;
+
+        maxValue += amplitude;
+
+        amplitude *= persistence;
+        frequency *= 2;
+    }
+
+    return total/maxValue;
 }
 
 Noise::~Noise() {
     delete p;
 }
 
-double Noise::GetNoise(double x, double y, double z) {
+double Noise::GenNoise(double x, double y, double z) {
     if(repeat > 0) {									// If we have any repeat on, change the coordinates to their "local" repetitions
         x = (int)x % repeat;
         y = (int)y % repeat;
@@ -92,4 +112,28 @@ int Noise::inc(int num) const {
 
 double Noise::lerp(double a, double b, double x) {
     return a + x * (b - a);
+}
+
+unsigned int Noise::CreateTexture(int width, int height) {
+    GLuint textureId;
+    auto *data = new float[width * height];
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            data[y * width + x] = (float)GetNoise((float)x/(float)width, (float)y/(float)height, 1.0, 4, 2);
+
+        }
+    }
+
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexImage2D(GL_TEXTURE_2D, 0,  GL_R32F, width, height, 0, GL_RED, GL_FLOAT, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    delete[] data;
+    return textureId;
+
+
 }

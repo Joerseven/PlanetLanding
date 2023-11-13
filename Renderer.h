@@ -10,7 +10,10 @@
 #include "Shader.h"
 #include "Texture.h"
 #include "Cubemap.h"
+#include "Component.h"
 #include "Light.h"
+#include <queue>
+#include "SimplexNoise.h"
 #include <memory>
 
 #define SHADERPATH "../shaders/"
@@ -49,11 +52,13 @@ public:
     void Destroy();
     void RenderBloomTexture(unsigned int srcTexture, float filterRadius, Renderer& context);
     unsigned int BloomTexture();
+    unsigned int FinalTexture();
 private:
     void RenderDownsamples(unsigned int srcTexture, Renderer& context);
     void RenderUpsamples(float filterRadius, Renderer& context);
     void Prefilter(unsigned int srcTexture, Renderer &context);
     void PostFilter(unsigned int srcTexture, unsigned int bloomTexture, Renderer &context);
+
 
     bloomFBO mFBO;
     iVector2 mSrcViewportSize;
@@ -62,18 +67,23 @@ private:
     Shader* mUpsampleShader;
     Shader* mPrefilterShader;
     Shader* mPostfilterShader;
-    GLuint mPrefilterTexture, mPostfilterTexture;
+    GLuint mPrefilterTexture;
+    GLuint mPostfilterTexture;
     Mesh* quad;
 };
 
-
+struct CameraTrack {
+    Vector3 points[4];
+    float duration;
+    float elapsed;
+};
 
 class Model {
 public:
     Model() = default;
     ~Model() = default;
     Mesh* mesh;
-    GLuint* texture;
+    GLuint texture;
 
     Matrix4 localTransform;
     Shader* shader;
@@ -100,11 +110,28 @@ public:
     GLuint colorBuffer;
     GLuint hdrFramebuffer;
     GLuint depthRenderbuffer;
+    Registry registry;
+    Noise* noise;
     BloomRenderer* bloomRenderer;
+    std::queue<CameraTrack> cameraQueue;
 
     void RenderSceneToBuffer();
 
     void RenderTextureToScreen(GLuint texture);
+
+    void UpdateCameraMovement(float dt);
+
+    void TranslateCamera(float dt);
+
+    void UpdateLookDirection(float dt) const;
+
+    void AddCameraAnimation(CameraTrack &&track);
+
+    bool UpdateCameraTrack(float dt);
+
+    void AddToScene();
+
+    void DrawModels();
 };
 
 
