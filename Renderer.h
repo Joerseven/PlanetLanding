@@ -107,9 +107,15 @@ public:
     Light* light;
     Cubemap* cubemap;
     Shader* hdrShader;
+    Shader* atmosphereShader;
     GLuint colorBuffer;
+    GLuint depthTexture;
     GLuint hdrFramebuffer;
     GLuint depthRenderbuffer;
+
+    GLuint atmosphereFramebuffer;
+    GLuint atmosphereTexture;
+
     Registry registry;
     Noise* noise;
     BloomRenderer* bloomRenderer;
@@ -129,9 +135,9 @@ public:
 
     bool UpdateCameraTrack(float dt);
 
-    void AddToScene();
-
     void DrawModels();
+
+    void RenderPlanetAtmosphere(GLuint tex, GLuint depth);
 };
 
 

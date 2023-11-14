@@ -4,6 +4,7 @@
 
 #include "Renderer.h"
 
+// Use bsplines as they're c2 continuous and will be smooooth
 Vector3 BSplinePoint(Vector3 &ControlPoint1, Vector3 &ControlPoint2, Vector3 &ControlPoint3, Vector3 &ControlPoint4, float t) {
 
     Vector3 DrawCurve = {0, 0, 0};
@@ -99,6 +100,24 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     cubemap = new Cubemap();
 
     hdrShader = new Shader(SHADERPATH "QuadVert.glsl",SHADERPATH "HdrFrag.glsl");
+    atmosphereShader = new Shader(SHADERPATH "atmosphereVert.glsl", SHADERPATH "atmosphere.glsl");
+
+    glGenFramebuffers(1, &atmosphereFramebuffer);
+
+    glGenTextures(1, &atmosphereTexture);
+    glBindTexture(GL_TEXTURE_2D, atmosphereTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, atmosphereFramebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, atmosphereTexture, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout << "Framebuffer is jover" << std::endl;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 
     glGenFramebuffers(1, &hdrFramebuffer);
 
@@ -109,13 +128,19 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glGenRenderbuffers(1, &depthRenderbuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+    glGenTextures(1, &depthTexture);
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+//    glGenRenderbuffers(1, &depthRenderbuffer);
+//    glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
+//    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 
     glBindFramebuffer(GL_FRAMEBUFFER, hdrFramebuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cout << "Framebuffer is jover" << std::endl;
     }
@@ -123,7 +148,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
     bloomRenderer = new BloomRenderer(width, height);
 
-    projMatrix = Matrix4::Perspective(0.01f, 15000.0f, (float)width/float(height), 45.0f);
+    projMatrix = Matrix4::Perspective(0.01f, 100.0f, (float)width/float(height), 45.0f);
 
     noise = new Noise(1024, 1024);
 
@@ -159,8 +184,9 @@ Renderer::~Renderer() {
 
 void Renderer::RenderScene() {
     RenderSceneToBuffer();
-    bloomRenderer->RenderBloomTexture(colorBuffer, 0.0001f, *this);
-    RenderTextureToScreen(bloomRenderer->FinalTexture());
+    RenderPlanetAtmosphere(colorBuffer, depthTexture);
+    //bloomRenderer->RenderBloomTexture(colorBuffer, 0.0001f, *this);
+    RenderTextureToScreen(atmosphereTexture);//bloomRenderer->FinalTexture());
 }
 
 void Renderer::TranslateCamera(float dt) {
@@ -200,7 +226,7 @@ void Renderer::UpdateLookDirection(float dt) const {
    camera->UpdateLookDirection(Window::GetMouse()->GetRelativePosition());
 }
 
-// R value reference I feel so smart
+// R value reference for no reason just bcause I know what it is.
 void Renderer::AddCameraAnimation(CameraTrack&& track) {
     cameraQueue.push(track);
 }
@@ -248,6 +274,32 @@ void Renderer::UpdateScene(float dt) {
     UpdateCameraMovement(dt);
 }
 
+void Renderer::RenderPlanetAtmosphere(GLuint tex, GLuint depth) {
+    glBindFramebuffer(GL_FRAMEBUFFER, atmosphereFramebuffer);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    BindShader(atmosphereShader);
+
+    Vector3 planetPos = {10, 0, 0};
+
+    glUniform1i(glGetUniformLocation(atmosphereShader->GetProgram(), "screenTexture"), 0);
+    glUniform3fv(glGetUniformLocation(atmosphereShader->GetProgram(), "cameraPosition"), 1, (float*)&camera->Position);
+    glUniformMatrix4fv(glGetUniformLocation(atmosphereShader->GetProgram(), "projViewMatrix"), 1, false, (projMatrix * viewMatrix).values);
+    glUniformMatrix4fv(glGetUniformLocation(atmosphereShader->GetProgram(), "projMatrix"), 1, false, projMatrix.values);
+    glUniformMatrix4fv(glGetUniformLocation(atmosphereShader->GetProgram(), "viewMatrix"), 1, false, viewMatrix.values);
+    glUniform3fv(glGetUniformLocation(atmosphereShader->GetProgram(), "planetCenter"), 1, (float*)&planetPos);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glUniform1i(glGetUniformLocation(atmosphereShader->GetProgram(), "depthTexture"), 1);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, depth);
+
+    finalQuad->Draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Renderer::RenderSceneToBuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, hdrFramebuffer);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -269,7 +321,7 @@ void Renderer::RenderTextureToScreen(GLuint texture) {
     finalQuad->Draw();
 }
 
-// Don't really want to use a shader pointer here, it could just be done with the program int but it breaks OGL renderer stuff if I don't use 'BindShader'.
+// Don't really want to use a shader pointer here, it could just be done with the int from get program but it breaks OGL renderer stuff if I don't use 'BindShader'.
 void Renderer::DrawModels() {
     auto c = registry.GetComponents<ModelData>();
     auto t = registry.GetComponents<Transform>();
