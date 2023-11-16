@@ -3,6 +3,9 @@
 #include "Component.h"
 # define M_PI 3.14159265358979323846
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tinyobjloader.h"
+
 using std::string;
 
 Mesh::Mesh(void)	{
@@ -318,6 +321,85 @@ void ReadSubMeshNames(std::ifstream& file, int count, vector<string>& names) {
 		std::getline(file, meshName);
 		names.emplace_back(meshName);
 	}
+}
+
+std::unique_ptr<Mesh> Mesh::LoadFromObjFile(const char* name) {
+
+    auto m = std::make_unique<Mesh>();
+
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+
+    std::string err;
+
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, name);
+
+    if (!err.empty()) {
+        std::cerr << err << std::endl;
+    }
+
+    if (!ret) {
+        std::cerr << "Definitely didn't work" << std::endl;
+    }
+
+    const std::vector<tinyobj::index_t>& indices = shapes[0].mesh.indices;
+    const std::vector<int>& material_ids = shapes[0].mesh.material_ids;
+
+    m->numVertices = material_ids.size() * 3;
+    m->vertices = new Vector3[m->numVertices];
+    m->normals = new Vector3[m->numVertices];
+    m->colors = new Vector4[m->numVertices];
+    m->textureCoords = new Vector2[m->numVertices];
+
+    m->numIndices = material_ids.size() * 3;
+    m->indices = new GLuint[m->numIndices];
+
+    GLuint iCounter = 0;
+    GLuint vCounter = 0;
+
+    // Vertex might not share vertex colours so this isn't very efficient atm. Might optimise it another time but probably won't lets be honest.
+    for (size_t index = 0; index < material_ids.size(); ++index) {
+        Vector3 original[] = {
+                Vector3(attrib.vertices[indices[3 * index].vertex_index * 3],
+                        attrib.vertices[indices[3 * index].vertex_index * 3 + 1],
+                        attrib.vertices[indices[3 * index].vertex_index * 3 + 2]),
+                Vector3(attrib.vertices[indices[3 * index + 1].vertex_index * 3],
+                        attrib.vertices[indices[3 * index + 1].vertex_index * 3 + 1],
+                        attrib.vertices[indices[3 * index + 1].vertex_index * 3 + 2]),
+                Vector3(attrib.vertices[indices[3 * index + 2].vertex_index * 3],
+                        attrib.vertices[indices[3 * index + 2].vertex_index * 3 + 1],
+                        attrib.vertices[indices[3 * index + 2].vertex_index * 3 + 2])
+        };
+
+        m->vertices[vCounter] = original[0];
+        m->textureCoords[vCounter] = Vector2(
+                attrib.texcoords[indices[3 * index].texcoord_index * 2],
+                attrib.texcoords[indices[3 * index].texcoord_index * 2 + 1]
+        );
+        m->colors[vCounter] = Vector4(materials[material_ids[index]].diffuse[0],materials[material_ids[index]].diffuse[1],materials[material_ids[index]].diffuse[2], 1.0);;
+        m->indices[iCounter++] = vCounter++;
+
+        m->vertices[vCounter] = original[1];
+        m->textureCoords[vCounter] = Vector2(
+                attrib.texcoords[indices[3 * index + 1].texcoord_index * 2],
+                attrib.texcoords[indices[3 * index + 1].texcoord_index * 2 + 1]
+        );
+        m->colors[vCounter] = Vector4(materials[material_ids[index]].diffuse[0],materials[material_ids[index]].diffuse[1],materials[material_ids[index]].diffuse[2], 1.0);;
+        m->indices[iCounter++] = vCounter++;
+
+        m->vertices[vCounter] = original[2];
+        m->textureCoords[vCounter] = Vector2(
+                attrib.texcoords[indices[3 * index + 2].texcoord_index * 2],
+                attrib.texcoords[indices[3 * index + 2].texcoord_index * 2 + 1]
+        );
+        m->colors[vCounter] = Vector4(materials[material_ids[index]].diffuse[0],materials[material_ids[index]].diffuse[1],materials[material_ids[index]].diffuse[2], 1.0);;
+        m->indices[iCounter++] = vCounter++;
+    }
+
+    m->GenerateNormals();
+    m->BufferData();
+    return m;
 }
 
 Mesh* Mesh::LoadFromMeshFile(const string& name) {

@@ -44,6 +44,8 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     registry.RegisterComponent<Transform>();
     registry.RegisterComponent<ModelData>();
 
+    shipModel = Mesh::LoadFromObjFile(MODELPATH "craft_speederA.obj");
+
     sun = new Model();
 
     auto p1 = registry.CreateEntity();
@@ -101,6 +103,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
     hdrShader = new Shader(SHADERPATH "QuadVert.glsl",SHADERPATH "HdrFrag.glsl");
     atmosphereShader = new Shader(SHADERPATH "atmosphereVert.glsl", SHADERPATH "atmosphere.glsl");
+    shipShader = new Shader(SHADERPATH "BaseVertex.glsl", SHADERPATH "BaseFragment.glsl");
 
     glGenFramebuffers(1, &atmosphereFramebuffer);
 
@@ -149,6 +152,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
     bloomRenderer = new BloomRenderer(width, height);
 
     projMatrix = Matrix4::Perspective(0.01f, 100.0f, (float)width/float(height), 45.0f);
+    shipTransform = Matrix4::Translation(Vector3(10, 10, 10)) * Matrix4::Rotation(0, Vector3(0, 1, 0)) * Matrix4::Scale(Vector3(1, 1, 1));
 
     noise = new Noise(1024, 1024);
 
@@ -184,9 +188,9 @@ Renderer::~Renderer() {
 
 void Renderer::RenderScene() {
     RenderSceneToBuffer();
-    RenderPlanetAtmosphere(colorBuffer, depthTexture);
-    //bloomRenderer->RenderBloomTexture(colorBuffer, 0.0001f, *this);
-    RenderTextureToScreen(atmosphereTexture);//bloomRenderer->FinalTexture());
+    //RenderPlanetAtmosphere(colorBuffer, depthTexture);
+    bloomRenderer->RenderBloomTexture(colorBuffer, 0.0001f, *this);
+    RenderTextureToScreen(bloomRenderer->FinalTexture());
 }
 
 void Renderer::TranslateCamera(float dt) {
@@ -262,12 +266,13 @@ void Renderer::UpdateCameraMovement(float dt) {
     if (UpdateCameraTrack(dt)) return;
 
     UpdateLookDirection(dt);
-    TranslateCamera(dt);
+    //TranslateCamera(dt);
+    UpdateShip(dt);
     if (Window::GetKeyboard()->KeyDown(KEYBOARD_Q)) {
         std::cout << camera->Position << std::endl;
     }
 
-    viewMatrix = camera->BuildViewMatrix();
+    //viewMatrix = camera->BuildViewMatrix();
 }
 
 void Renderer::UpdateScene(float dt) {
@@ -308,8 +313,77 @@ void Renderer::RenderSceneToBuffer() {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     cubemap->Draw(this);
     sun->Draw(this);
+
+    DrawShip();
     DrawModels();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::UpdateShip(float dt) {
+
+    float thrust = 0;
+    Vector3 pitchYaw;
+
+    if (Window::GetKeyboard()->KeyDown(KEYBOARD_W)) {
+        thrust += 1;
+    }
+
+    if (Window::GetKeyboard()->KeyDown(KEYBOARD_A)) {
+        pitchYaw.x -= 1;
+    }
+
+    if (Window::GetKeyboard()->KeyDown(KEYBOARD_D)) {
+        pitchYaw.x += 1;
+    }
+
+    if (Window::GetKeyboard()->KeyDown(KEYBOARD_SHIFT)) {
+        pitchYaw.y += 1;
+    }
+
+    if (Window::GetKeyboard()->KeyDown(KEYBOARD_SPACE)) {
+        pitchYaw.y -= 1;
+    }
+
+    pitchYaw.Normalise();
+
+    float maxRotationChange = 20.0f;
+    float maxThrust = 10.0f;
+    float acceleration = 0.5f;
+
+    pitching += pitchYaw.y * dt * 10;
+    pitching = std::min(std::max(pitching, -75.0f), 75.0f);
+
+    yawing += pitchYaw.x * dt * 10;
+    yawing = std::min(std::max(yawing, -75.0f), 75.0f);
+
+
+
+    if (thrust == 0 && shipSpeed > 0.001) {
+        shipSpeed -= shipSpeed * 0.9f * dt;
+    } else {
+        shipSpeed += thrust * acceleration * dt;
+    }
+
+    std::cout << shipSpeed << std::endl;
+
+    auto degFactor = 57.2957795f;
+
+    shipTransform = Matrix4::Translation(shipTransform.GetPositionVector())
+            * Matrix4::Rotation(pitching, Vector3(0, 0, 1))
+            * Matrix4::Rotation(yawing, Vector3(0, 1, 0))
+            * Matrix4::Translation(Vector3(0, 0, shipSpeed));
+
+
+    viewMatrix = Matrix4::BuildViewMatrix(shipTransform * Vector3(0, 0, -5), shipTransform.GetPositionVector()) * Matrix4::Translation(Vector3(0, -1, 0));
+}
+
+void Renderer::DrawShip() {
+    BindShader(shipShader);
+    modelMatrix = shipTransform;
+    UpdateShaderMatrices();
+    SetShaderLight(*light);
+    glUniform3fv(glGetUniformLocation(shipShader->GetProgram(), "cameraPos"), 1, (float*)&camera->Position);
+    shipModel->Draw();
 }
 
 void Renderer::RenderTextureToScreen(GLuint texture) {

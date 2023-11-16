@@ -42,6 +42,7 @@ public:
 	Quaternion(void);
 	Quaternion(float x, float y, float z, float w);
 	Quaternion(const Vector3& vector, float w);
+    Quaternion(const Vector3& vec1, const Vector3 vec2);
 
 	Quaternion(const Matrix3& m);
 	Quaternion(const Matrix4& m);

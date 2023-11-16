@@ -23,6 +23,8 @@ _-_-_-_-_-_-_-""  ""
 #include <vector>
 #include <string>
 
+#define MODELPATH "../Models/"
+
 //A handy enumerator, to determine which member of the bufferObject array
 //holds which data
 enum MeshBuffer {
@@ -54,6 +56,7 @@ public:
 	void DrawSubMesh(int i);
 
 	static Mesh* LoadFromMeshFile(const std::string& name);
+    static std::unique_ptr<Mesh> LoadFromObjFile(const char *name);
     static Mesh* GenerateTriangle();
     static Mesh* GenerateQuad();
     static Mesh* GenerateUVSphere(int slices, int stacks);

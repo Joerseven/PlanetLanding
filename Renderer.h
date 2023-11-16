@@ -15,6 +15,9 @@
 #include <queue>
 #include "SimplexNoise.h"
 #include <memory>
+#include <algorithm>
+#include <cmath>
+#include "Quaternion.h"
 
 #define SHADERPATH "../shaders/"
 
@@ -108,10 +111,21 @@ public:
     Cubemap* cubemap;
     Shader* hdrShader;
     Shader* atmosphereShader;
+    Shader* shipShader;
+    std::unique_ptr<Mesh> shipModel;
     GLuint colorBuffer;
     GLuint depthTexture;
     GLuint hdrFramebuffer;
     GLuint depthRenderbuffer;
+    Matrix4 shipTransform;
+    Vector3 shipDirection;
+    Quaternion shipRotation;
+
+    float pitching = 0.0f;
+    float yawing = 0.0f;
+
+    float shipSpeed = 0;
+    float shipAcceleration = 2;
 
     GLuint atmosphereFramebuffer;
     GLuint atmosphereTexture;
@@ -131,6 +145,8 @@ public:
 
     void UpdateLookDirection(float dt) const;
 
+    void UpdateShip(float dt);
+
     void AddCameraAnimation(CameraTrack &&track);
 
     bool UpdateCameraTrack(float dt);
@@ -138,6 +154,8 @@ public:
     void DrawModels();
 
     void RenderPlanetAtmosphere(GLuint tex, GLuint depth);
+
+    void DrawShip();
 };
 
 
