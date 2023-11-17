@@ -31,10 +31,14 @@ void main() {
 
     vec3 landColor = vec3(1.0, 1.0, 1.0) - IN.colour.rgb;
 
-    vec3 surface = ((IN.colour.rgb * step(0.5, texture(diffuseTex, IN.texCoord).r)) * lightColor.rgb) + (landColor * (1-smoothstep(0.5, 0.51, texture(diffuseTex, IN.texCoord).r) * lightColor.rgb));
+    vec2 tC = vec2(IN.texCoord.x * 0.1, IN.texCoord.y);
+    vec3 unlitSea = IN.colour.rgb * step(0.5, texture(diffuseTex, tC).r);
+    vec3 unlitLand = landColor * (1-step(0.5, texture(diffuseTex, tC).r));
+
+    vec3 surface = (unlitSea + unlitLand) * lightColor.rgb;
     //vec3 surface = IN.colour.rgb;
     fragColor.rgb = surface * lambert * attenuation;
     fragColor.rgb += (lightColor.rgb * specFactor)*attenuation*0.33;
-    fragColor.rgb += surface * 0.8f;
+    fragColor.rgb += surface * 0.25f;
     fragColor.a = 1.0;
 }

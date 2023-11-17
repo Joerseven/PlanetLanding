@@ -663,8 +663,10 @@ Mesh *Mesh::GenerateUVSphere(int slices, int stacks) {
             vertex.x = xy * cosf(longitudeAngle);
             vertex.y = xy * sinf(longitudeAngle);
             vertex.z = z;
-            vertex.s = (float)j/slices;
-            vertex.t = (float)i/stacks;
+            vertex.s = (vertex.x + 1.0f) * 0.5f;
+            vertex.t = (vertex.y + 1.0f) * 0.5f;
+//            vertex.s = (float)j/slices;
+//            vertex.t = (float)i/stacks;
             m->vertices[vertPointer++] = Vector3(vertex.x, vertex.y, vertex.z);
             m->textureCoords[uvPointer++] = Vector2(vertex.s, vertex.t);
 

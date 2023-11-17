@@ -104,7 +104,7 @@ public:
     void RenderScene() override;
     void UpdateScene(float dt) override;
 public:
-    Model *sun, *planet, *planet2, *planet3;
+    Shader *planetShader, *sunShader;
     Camera* camera;
     Mesh* finalQuad;
     Light* light;
@@ -112,13 +112,15 @@ public:
     Shader* hdrShader;
     Shader* atmosphereShader;
     Shader* shipShader;
+    Shader* antiShader;
     std::unique_ptr<Mesh> shipModel;
     GLuint colorBuffer;
     GLuint depthTexture;
     GLuint hdrFramebuffer;
-    GLuint depthRenderbuffer;
     Matrix4 shipTransform;
     Vector3 shipDirection;
+    GLuint antiATex;
+    GLuint antiABuffer;
     Quaternion shipRotation;
 
     float pitching = 0.0f;
@@ -156,6 +158,27 @@ public:
     void RenderPlanetAtmosphere(GLuint tex, GLuint depth);
 
     void DrawShip();
+
+    Entity RegisterPlanet(Transform transform, Vector4 color, Shader *shader, GLuint texture);
+
+    GLuint CreatePostPassTexture();
+
+    GLuint CreateDepthTexture();
+
+    GLuint CreateHdrFramebuffer(GLuint colorBuffer, GLuint depthTexture);
+
+    void RegisterComponents();
+
+    void BuildScene();
+
+    void LoadShaders();
+
+    void CreateTextures();
+
+    void InitAntiAliasing();
+
+
+    void AntiAliasingPass(GLuint tex);
 };
 
 

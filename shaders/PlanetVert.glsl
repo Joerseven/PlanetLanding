@@ -26,10 +26,10 @@ void main() {
     OUT.colour = colour;
     mat3 normalMatrix = transpose(inverse(mat3(modelMatrix)));
     OUT.normal = normalize(normalMatrix * normalize(normal));
-    float longitude = 0.5 - atan(normalize(normal).z, normalize(normal).x) / (2.0f * PI);
-    float latitude = 0.5 + asin(normalize(normal).y) / PI;
-    vec2 uv = vec2(clamp(((atan(position.z, position.x) / radians(180.0)) + 1.0) / 2.0, 0.0, 1.0), (0.5-(asin(position.y)/radians(180.0))));
-    OUT.texCoord = vec2(longitude, latitude);
+    //float longitude = 0.5 - atan(normalize(normal).z, normalize(normal).x) / (2.0f * PI);
+    //float latitude = 0.5 + asin(normalize(normal).y) / PI;
+    //vec2 uv = vec2(clamp(((atan(position.z, position.x) / radians(180.0)) + 1.0) / 2.0, 0.0, 1.0), (0.5-(asin(position.y)/radians(180.0))));
+    OUT.texCoord = texCoord;
     vec4 worldPos = (modelMatrix * vec4(position, 1));
     OUT.worldPos = worldPos.xyz;
     gl_Position = (projMatrix * viewMatrix) * worldPos;

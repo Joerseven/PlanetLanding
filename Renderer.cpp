@@ -4,6 +4,15 @@
 
 #include "Renderer.h"
 
+//    AddCameraAnimation({
+//        Vector3(5.790, 0.215, 40.784),
+//        Vector3(12.0974,0.327629,16.9606),
+//        Vector3(15.3172,3.30724,12.3732),
+//        Vector3(30.3667,8.63543,10.8772),
+//        20.0f,
+//        0.0f
+//    });
+
 // Use bsplines as they're c2 continuous and will be smooooth
 Vector3 BSplinePoint(Vector3 &ControlPoint1, Vector3 &ControlPoint2, Vector3 &ControlPoint3, Vector3 &ControlPoint4, float t) {
 
@@ -36,160 +45,168 @@ Vector3 BSplinePoint(Vector3 &ControlPoint1, Vector3 &ControlPoint2, Vector3 &Co
     return DrawCurve;
 }
 
-
-
 Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
-    camera = new Camera();
 
-    registry.RegisterComponent<Transform>();
-    registry.RegisterComponent<ModelData>();
 
-    shipModel = Mesh::LoadFromObjFile(MODELPATH "craft_speederA.obj");
+    RegisterComponents();
+    LoadShaders();
+    CreateTextures();
 
-    sun = new Model();
-
-    auto p1 = registry.CreateEntity();
-    auto p2 = registry.CreateEntity();
-    auto p3 = registry.CreateEntity();
-
-    registry.AddComponent<Transform>(p1, Matrix4::Rotation(0, Vector3(0, 1, 0))
-                              * Matrix4::Translation(Vector3(10, 0, 0))
-                              * Matrix4::Scale(Vector3(0.5, 0.5, 0.5)));
-
-    registry.AddComponent<Transform>(p2, Matrix4::Rotation(-60, Vector3(0, 1, 0))
-                                         * Matrix4::Translation(Vector3(20, 0, 0))
-                                         * Matrix4::Scale(Vector3(0.8, 0.8, 0.8)));
-
-    registry.AddComponent<Transform>(p3, Matrix4::Rotation(150, Vector3(0, 1, 0))
-                                         * Matrix4::Translation(Vector3(30, 0, 0))
-                                         * Matrix4::Scale(Vector3(1, 1, 1)));
-
-    auto pMesh = Mesh::GenerateUVSphere(30, 30);
-    auto pMesh2 = Mesh::GenerateUVSphere(30, 30);
-    auto pMesh3 = Mesh::GenerateUVSphere(30, 30);
-
-    pMesh->SetColor(0, 0, 190.0f / 255.0f, 1.0);
-    pMesh2->SetColor(120.0f/255.0f, 0, 0, 1.0);
-    pMesh3->SetColor(0, 230.0f/255.0f, 0, 1.0);
-
-    auto pData = Mesh::ToModelData(pMesh);
-    auto pData2 = Mesh::ToModelData(pMesh2);
-    auto pData3 = Mesh::ToModelData(pMesh3);
-
+    BuildScene();
 
     finalQuad = Mesh::GenerateQuad();
 
-    sun->mesh = Mesh::GenerateUVSphere(30, 20);
-
-    sun->localTransform = Matrix4::Translation(Vector3(0, 0, 0)) * Matrix4::Scale(Vector3(3, 3, 3));
-
-    sun->mesh->SetColor(2.5, 1.7, 0.5, 1.0);
-
-    sun->shader = new Shader(SHADERPATH "SunVert.glsl", SHADERPATH "SunFrag.glsl");
-
-    pData.shader = new Shader(SHADERPATH "PlanetVert.glsl", SHADERPATH "PlanetFrag.glsl");
-    pData2.shader = pData.shader;
-    pData3.shader = pData.shader;
-
-    light = new Light(Vector3(0, 0, 0), Vector4(1.5,1.5,1.5,1.5), 50);
-
-
-    if (!sun->shader->LoadSuccess() || !pData.shader->LoadSuccess()) {
-        std::cout << "Fuck" << std::endl;
-        return;
-    }
-
-    cubemap = new Cubemap();
-
-    hdrShader = new Shader(SHADERPATH "QuadVert.glsl",SHADERPATH "HdrFrag.glsl");
-    atmosphereShader = new Shader(SHADERPATH "atmosphereVert.glsl", SHADERPATH "atmosphere.glsl");
-    shipShader = new Shader(SHADERPATH "BaseVertex.glsl", SHADERPATH "BaseFragment.glsl");
-
-    glGenFramebuffers(1, &atmosphereFramebuffer);
-
-    glGenTextures(1, &atmosphereTexture);
-    glBindTexture(GL_TEXTURE_2D, atmosphereTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, atmosphereFramebuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, atmosphereTexture, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cout << "Framebuffer is jover" << std::endl;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-    glGenFramebuffers(1, &hdrFramebuffer);
-
-    // Large fp color texture
-    glGenTextures(1, &colorBuffer);
-    glBindTexture(GL_TEXTURE_2D, colorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glGenTextures(1, &depthTexture);
-    glBindTexture(GL_TEXTURE_2D, depthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-//    glGenRenderbuffers(1, &depthRenderbuffer);
-//    glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
-//    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, hdrFramebuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cout << "Framebuffer is jover" << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    hdrFramebuffer = CreateHdrFramebuffer(colorBuffer, depthTexture);
     bloomRenderer = new BloomRenderer(width, height);
+    InitAntiAliasing();
 
     projMatrix = Matrix4::Perspective(0.01f, 100.0f, (float)width/float(height), 45.0f);
     shipTransform = Matrix4::Translation(Vector3(10, 10, 10)) * Matrix4::Rotation(0, Vector3(0, 1, 0)) * Matrix4::Scale(Vector3(1, 1, 1));
 
-    noise = new Noise(1024, 1024);
-
-    pData.texture = noise->texture;
-    pData2.texture = noise->texture;
-    pData3.texture = noise->texture;
-
-    registry.AddComponent<ModelData>(p1, pData);
-    registry.AddComponent<ModelData>(p2, pData2);
-    registry.AddComponent<ModelData>(p3, pData3);
-
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-
-//    AddCameraAnimation({
-//        Vector3(5.790, 0.215, 40.784),
-//        Vector3(12.0974,0.327629,16.9606),
-//        Vector3(15.3172,3.30724,12.3732),
-//        Vector3(30.3667,8.63543,10.8772),
-//        20.0f,
-//        0.0f
-//    });
 
     init = true;
 }
 
 Renderer::~Renderer() {
-    delete sun;
+    //delete sun;
     delete camera;
     delete light;
     delete noise;
 }
 
+
+Entity Renderer::RegisterPlanet(Transform transform, Vector4 color, Shader* shader, GLuint texture) {
+    auto e = registry.CreateEntity();
+    registry.AddComponent<Transform>(e, transform);
+    auto pMesh = Mesh::GenerateUVSphere(30, 30);
+    pMesh->SetColor(color.x, color.y, color.z, color.w);
+    auto pData = Mesh::ToModelData(pMesh);
+    pData.shader = shader;
+    if (texture != 0 ) {
+        pData.texture = texture;
+    }
+    registry.AddComponent<ModelData>(e, pData);
+    // I know it doesn't delete mesh :(
+    return e;
+}
+
+GLuint Renderer::CreatePostPassTexture() {
+    GLuint t;
+    glGenTextures(1, &t);
+    glBindTexture(GL_TEXTURE_2D, t);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    return t;
+}
+
+GLuint Renderer::CreateDepthTexture() {
+    GLuint t;
+    glGenTextures(1, &t);
+    glBindTexture(GL_TEXTURE_2D, t);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    return t;
+}
+
+GLuint Renderer::CreateHdrFramebuffer(GLuint colorBuffer, GLuint depthTexture) {
+    GLuint f;
+    glGenFramebuffers(1, &f);
+    glBindFramebuffer(GL_FRAMEBUFFER, f);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
+
+    if (depthTexture != 0) {
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+    }
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout << "Framebuffer is jover" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    return f;
+}
+
+void Renderer::RegisterComponents() {
+    registry.RegisterComponent<Transform>();
+    registry.RegisterComponent<ModelData>();
+}
+
+void Renderer::LoadShaders() {
+    planetShader = new Shader(SHADERPATH "PlanetVert.glsl", SHADERPATH "PlanetFrag.glsl");
+    sunShader = new Shader(SHADERPATH "SunVert.glsl", SHADERPATH "SunFrag.glsl");
+    hdrShader = new Shader(SHADERPATH "QuadVert.glsl",SHADERPATH "HdrFrag.glsl");
+    antiShader = new Shader(SHADERPATH "QuadVert.glsl", SHADERPATH "AntiAliasing.glsl");
+    shipShader = new Shader(SHADERPATH "BaseVertex.glsl", SHADERPATH "BaseFragment.glsl");
+
+
+    if (!sunShader->LoadSuccess()
+        || !planetShader->LoadSuccess()
+        || !hdrShader->LoadSuccess()
+        || !shipShader->LoadSuccess()
+        || !antiShader->LoadSuccess()) {
+        std::cout << "Fuck" << std::endl;
+        return;
+    }
+}
+
+void Renderer::CreateTextures() {
+    noise = new Noise(4096, 4096);
+    colorBuffer = CreatePostPassTexture();
+    depthTexture = CreateDepthTexture();
+}
+
+void Renderer::BuildScene() {
+
+    camera = new Camera();
+
+    light = new Light(Vector3(0, 0, 0), Vector4(1.5,1.5,1.5,1.5), 50);
+
+    cubemap = new Cubemap();
+
+    RegisterPlanet(Matrix4::Rotation(0, Vector3(0, 1, 0))
+                   * Matrix4::Translation(Vector3(10, 0, 0))
+                   * Matrix4::Scale(Vector3(0.5, 0.5, 0.5)),
+                   Vector4(0, 0, 190.0f / 255.0f, 1.0),
+                   planetShader, noise->texture);
+
+    RegisterPlanet(Matrix4::Rotation(-60, Vector3(0, 1, 0))
+                   * Matrix4::Translation(Vector3(20, 0, 0))
+                   * Matrix4::Rotation(50, Vector3(0, 0, 1))
+                   * Matrix4::Rotation(70, Vector3(1, 0, 0))
+                   * Matrix4::Scale(Vector3(0.8, 0.8, 0.8)),
+                   Vector4(120.0f/255.0f, 0, 0, 1.0),
+                   planetShader, noise->texture);
+
+    RegisterPlanet(Matrix4::Rotation(180, Vector3(0, 1, 0))
+                   * Matrix4::Translation(Vector3(15, 0, 0))
+                   * Matrix4::Scale(Vector3(0.5, 0.5, 0.5)),
+                   Vector4(0, 230.0f/255.0f, 0, 1.0),
+                   planetShader, noise->texture);
+
+    RegisterPlanet(Matrix4::Scale(Vector3(3, 3, 3)), Vector4(2.5, 1.7, 0.5, 1.0), sunShader, 0);
+
+    shipModel = Mesh::LoadFromObjFile(MODELPATH "craft_speederA.obj");
+
+
+}
+
+void Renderer::InitAntiAliasing() {
+    antiATex = CreatePostPassTexture();
+    antiABuffer = CreateHdrFramebuffer(antiATex, 0);
+}
+
+void Renderer::AntiAliasingPass(GLuint tex) {
+}
+
 void Renderer::RenderScene() {
     RenderSceneToBuffer();
-    //RenderPlanetAtmosphere(colorBuffer, depthTexture);
+
     bloomRenderer->RenderBloomTexture(colorBuffer, 0.01f, *this);
+
+
     RenderTextureToScreen(bloomRenderer->FinalTexture());
 }
 
@@ -312,7 +329,6 @@ void Renderer::RenderSceneToBuffer() {
     }
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     cubemap->Draw(this);
-    sun->Draw(this);
 
     DrawShip();
     DrawModels();
@@ -376,9 +392,11 @@ void Renderer::DrawModels() {
         glUniform3fv(glGetUniformLocation(item.shader->GetProgram(), "cameraPos"), 1, (float*)&camera->Position);
         SetShaderLight(*light);
 
-        glUniform1i(glGetUniformLocation(item.shader->GetProgram(), "diffuseTex"), 0);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, item.texture);
+        if (item.texture != 0) {
+            glUniform1i(glGetUniformLocation(item.shader->GetProgram(), "diffuseTex"), 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, item.texture);
+        }
 
         glUniformMatrix4fv(glGetUniformLocation(item.shader->GetProgram(), "modelMatrix"), 1, false, t->items[i].values);
 
