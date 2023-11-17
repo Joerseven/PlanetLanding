@@ -149,7 +149,7 @@ public:
 
     void AddCameraAnimation(CameraTrack &&track);
 
-    bool UpdateCameraTrack(float dt);
+    bool MovePosition(float dt, Vector3& position);
 
     void DrawModels();
 

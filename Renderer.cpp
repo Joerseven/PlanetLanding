@@ -64,9 +64,9 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
                                          * Matrix4::Translation(Vector3(30, 0, 0))
                                          * Matrix4::Scale(Vector3(1, 1, 1)));
 
-    auto pMesh = Mesh::GenerateUVSphere(21, 21);
-    auto pMesh2 = Mesh::GenerateUVSphere(21, 21);
-    auto pMesh3 = Mesh::GenerateUVSphere(21, 21);
+    auto pMesh = Mesh::GenerateUVSphere(30, 30);
+    auto pMesh2 = Mesh::GenerateUVSphere(30, 30);
+    auto pMesh3 = Mesh::GenerateUVSphere(30, 30);
 
     pMesh->SetColor(0, 0, 190.0f / 255.0f, 1.0);
     pMesh2->SetColor(120.0f/255.0f, 0, 0, 1.0);
@@ -83,7 +83,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
     sun->localTransform = Matrix4::Translation(Vector3(0, 0, 0)) * Matrix4::Scale(Vector3(3, 3, 3));
 
-    sun->mesh->SetColor(5, 3.4, 1.0, 1.0);
+    sun->mesh->SetColor(2.5, 1.7, 0.5, 1.0);
 
     sun->shader = new Shader(SHADERPATH "SunVert.glsl", SHADERPATH "SunFrag.glsl");
 
@@ -189,7 +189,7 @@ Renderer::~Renderer() {
 void Renderer::RenderScene() {
     RenderSceneToBuffer();
     //RenderPlanetAtmosphere(colorBuffer, depthTexture);
-    bloomRenderer->RenderBloomTexture(colorBuffer, 0.0001f, *this);
+    bloomRenderer->RenderBloomTexture(colorBuffer, 0.01f, *this);
     RenderTextureToScreen(bloomRenderer->FinalTexture());
 }
 
@@ -235,7 +235,7 @@ void Renderer::AddCameraAnimation(CameraTrack&& track) {
     cameraQueue.push(track);
 }
 
-bool Renderer::UpdateCameraTrack(float dt) {
+bool Renderer::MovePosition(float dt, Vector3& position) {
     if (cameraQueue.empty()) {
         return false;
     }
@@ -263,16 +263,16 @@ bool Renderer::UpdateCameraTrack(float dt) {
 
 void Renderer::UpdateCameraMovement(float dt) {
 
-    if (UpdateCameraTrack(dt)) return;
+    //if (MovePosition(dt), Vector3(0, 1, 0)) return;
 
     UpdateLookDirection(dt);
-    //TranslateCamera(dt);
-    UpdateShip(dt);
+    TranslateCamera(dt);
+    //UpdateShip(dt);
     if (Window::GetKeyboard()->KeyDown(KEYBOARD_Q)) {
         std::cout << camera->Position << std::endl;
     }
 
-    //viewMatrix = camera->BuildViewMatrix();
+    viewMatrix = camera->BuildViewMatrix();
 }
 
 void Renderer::UpdateScene(float dt) {
@@ -343,38 +343,6 @@ void Renderer::UpdateShip(float dt) {
     if (Window::GetKeyboard()->KeyDown(KEYBOARD_SPACE)) {
         pitchYaw.y -= 1;
     }
-
-    pitchYaw.Normalise();
-
-    float maxRotationChange = 20.0f;
-    float maxThrust = 10.0f;
-    float acceleration = 0.5f;
-
-    pitching += pitchYaw.y * dt * 10;
-    pitching = std::min(std::max(pitching, -75.0f), 75.0f);
-
-    yawing += pitchYaw.x * dt * 10;
-    yawing = std::min(std::max(yawing, -75.0f), 75.0f);
-
-
-
-    if (thrust == 0 && shipSpeed > 0.001) {
-        shipSpeed -= shipSpeed * 0.9f * dt;
-    } else {
-        shipSpeed += thrust * acceleration * dt;
-    }
-
-    std::cout << shipSpeed << std::endl;
-
-    auto degFactor = 57.2957795f;
-
-    shipTransform = Matrix4::Translation(shipTransform.GetPositionVector())
-            * Matrix4::Rotation(pitching, Vector3(0, 0, 1))
-            * Matrix4::Rotation(yawing, Vector3(0, 1, 0))
-            * Matrix4::Translation(Vector3(0, 0, shipSpeed));
-
-
-    viewMatrix = Matrix4::BuildViewMatrix(shipTransform * Vector3(0, 0, -5), shipTransform.GetPositionVector()) * Matrix4::Translation(Vector3(0, -1, 0));
 }
 
 void Renderer::DrawShip() {
@@ -516,7 +484,7 @@ BloomRenderer::BloomRenderer(int windowWidth, int windowHeight) {
     mSrcViewportSize = iVector2{windowWidth, windowHeight};
     mSrcViewportSizeFloat = Vector2((float)windowWidth, (float)windowHeight);
 
-    bool status = mFBO.Init(windowWidth, windowHeight, 6);
+    bool status = mFBO.Init(windowWidth, windowHeight, 8);
     if (!status) {
         std::cerr << "Failed to initialize bloom FBO - cannot create bloom renderer!\n";
         return;
