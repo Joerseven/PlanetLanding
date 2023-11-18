@@ -13,6 +13,37 @@
 //        0.0f
 //    });
 
+float lerp(float v0, float v1, float t) {
+    return (1 - t) * v0 + t * v1;
+}
+
+Segment CalculateSegment(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3) {
+    float alpha = 0.5f;
+    float tension = 0;
+    float t0 = 0.0f;
+
+    float t1 = t0 + pow((p1 - p0).Length(), alpha);
+    float t2 = t1 + pow((p2 - p1).Length(), alpha);
+    float t3 = t2 + pow((p3 - p2).Length(), alpha);
+
+    Vector3 m1 = ((p1 - p0) / (t1 - t0) - (p2 - p0) / (t2 - t0) + (p2 - p1) / (t2 - t1)) * (1.0f - tension) * (t2 - t1);
+    Vector3 m2 = ((p2 - p1) / (t2 - t1) - (p3 - p1) / (t3 - t1) + (p3 - p2) / (t3 - t2)) * (1.0f - tension) * (t2 - t1);
+
+    Segment segment;
+    segment.a = (p1 - p2) * 2.0f + m1 + m2;
+    segment.b = (p1 - p2) * -3.0f - m1 - m1 - m2;
+    segment.c = m1;
+    segment.d = p1;
+    return segment;
+}
+
+Vector3 GetPoint(const Segment& segment, float t) {
+    return segment.a * t * t * t
+        + segment.b * t * t
+        + segment.c * t
+        + segment.d;
+}
+
 // Use bsplines as they're c2 continuous and will be smooooth
 Vector3 BSplinePoint(Vector3 &ControlPoint1, Vector3 &ControlPoint2, Vector3 &ControlPoint3, Vector3 &ControlPoint4, float t) {
 
@@ -47,12 +78,12 @@ Vector3 BSplinePoint(Vector3 &ControlPoint1, Vector3 &ControlPoint2, Vector3 &Co
 
 Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
-
     RegisterComponents();
     LoadShaders();
     CreateTextures();
 
     BuildScene();
+    CreateCameraQueue();
 
     finalQuad = Mesh::GenerateQuad();
 
@@ -74,6 +105,52 @@ Renderer::~Renderer() {
     delete camera;
     delete light;
     delete noise;
+}
+
+void Renderer::CreateCameraQueue() {
+
+    cameraQueue.push_back({
+      Vector3(10.8239,0.100012,0.0983553),
+      86.6702,
+      -8.65998,
+    });
+
+    cameraQueue.push_back({
+        Vector3(11.2352,0.100012,0.00594361),
+        84.4302,
+        -7.81998,
+    });
+
+    cameraQueue.push_back({
+          Vector3(12.224,0.500375,-0.900616),
+          98.7102,
+          -8.09998,
+    });
+
+    cameraQueue.push_back({
+          Vector3(14.4813,2.8122,-5.92533),
+          122.86,
+          -15.45
+    });
+
+    cameraQueue.push_back({
+          Vector3(14.1931,5.99043,-13.2191),
+          143.581,
+          -19.7899
+    });
+
+    cameraQueue.push_back({
+          Vector3(4.92461,12.2665,-13.0478),
+          162.691,
+          -36.3099,
+    });
+
+    spaceshipTrack = cameraQueue;
+
+    currentTrack = 0;
+    currentElapsed = 0;
+    trackDuration = 1.0f;
+    currentSegment = CalculateSegment(cameraQueue[0].point, cameraQueue[1].point, cameraQueue[2].point, cameraQueue[3].point);
 }
 
 
@@ -166,22 +243,18 @@ void Renderer::BuildScene() {
 
     cubemap = new Cubemap();
 
-    RegisterPlanet(Matrix4::Rotation(0, Vector3(0, 1, 0))
-                   * Matrix4::Translation(Vector3(10, 0, 0))
+    RegisterPlanet(Matrix4::Translation(Vector3(10, 0, 0))
                    * Matrix4::Scale(Vector3(0.5, 0.5, 0.5)),
                    Vector4(0, 0, 190.0f / 255.0f, 1.0),
                    planetShader, noise->texture);
 
-    RegisterPlanet(Matrix4::Rotation(-60, Vector3(0, 1, 0))
-                   * Matrix4::Translation(Vector3(20, 0, 0))
-                   * Matrix4::Rotation(50, Vector3(0, 0, 1))
-                   * Matrix4::Rotation(70, Vector3(1, 0, 0))
-                   * Matrix4::Scale(Vector3(0.8, 0.8, 0.8)),
+    RegisterPlanet(Matrix4::Translation(Vector3(20, 0, 0))
+                   * Matrix4::Scale(Vector3(0.5, 0.5, 0.5)),
                    Vector4(120.0f/255.0f, 0, 0, 1.0),
                    planetShader, noise->texture);
 
-    RegisterPlanet(Matrix4::Rotation(180, Vector3(0, 1, 0))
-                   * Matrix4::Translation(Vector3(15, 0, 0))
+    RegisterPlanet(
+                   Matrix4::Translation(Vector3(30, 0, 0))
                    * Matrix4::Scale(Vector3(0.5, 0.5, 0.5)),
                    Vector4(0, 230.0f/255.0f, 0, 1.0),
                    planetShader, noise->texture);
@@ -189,8 +262,6 @@ void Renderer::BuildScene() {
     RegisterPlanet(Matrix4::Scale(Vector3(3, 3, 3)), Vector4(2.5, 1.7, 0.5, 1.0), sunShader, 0);
 
     shipModel = Mesh::LoadFromObjFile(MODELPATH "craft_speederA.obj");
-
-
 }
 
 void Renderer::InitAntiAliasing() {
@@ -199,15 +270,23 @@ void Renderer::InitAntiAliasing() {
 }
 
 void Renderer::AntiAliasingPass(GLuint tex) {
+    glBindFramebuffer(GL_FRAMEBUFFER, antiABuffer);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    BindShader(antiShader);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glUniform1f(glGetUniformLocation(antiShader->GetProgram(), "width"), width);
+    glUniform1f(glGetUniformLocation(antiShader->GetProgram(), "height"), height);
+    finalQuad->Draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::RenderScene() {
     RenderSceneToBuffer();
 
     bloomRenderer->RenderBloomTexture(colorBuffer, 0.01f, *this);
-
-
-    RenderTextureToScreen(bloomRenderer->FinalTexture());
+    AntiAliasingPass(bloomRenderer->FinalTexture());
+    RenderTextureToScreen(antiATex);
 }
 
 void Renderer::TranslateCamera(float dt) {
@@ -247,32 +326,55 @@ void Renderer::UpdateLookDirection(float dt) const {
    camera->UpdateLookDirection(Window::GetMouse()->GetRelativePosition());
 }
 
-// R value reference for no reason just bcause I know what it is.
-void Renderer::AddCameraAnimation(CameraTrack&& track) {
-    cameraQueue.push(track);
-}
+bool Renderer::MoveSpaceship(float dt, Vector3& position) {
 
-bool Renderer::MovePosition(float dt, Vector3& position) {
-    if (cameraQueue.empty()) {
-        return false;
+    int trackSize = (int)cameraQueue.size();
+    float t = currentElapsed / trackDuration;
+
+    position = GetPoint(currentSegment, t);
+
+
+    currentElapsed += dt * 0.2f;
+    camera->Pitch = lerp(cameraQueue[(currentTrack+1)%trackSize].pitch, cameraQueue[(currentTrack+2)%trackSize].pitch, t);
+    camera->Yaw = lerp(cameraQueue[(currentTrack+1)%trackSize].yaw, cameraQueue[(currentTrack+2)%trackSize].yaw, t);
+
+
+    if (currentElapsed > trackDuration) {
+
+        currentTrack = (currentTrack + 1) % trackSize;
+        currentSegment = CalculateSegment(cameraQueue[currentTrack].point,
+                                          cameraQueue[(currentTrack+1)%trackSize].point,
+                                          cameraQueue[(currentTrack+2)%trackSize].point,
+                                          cameraQueue[(currentTrack+3)%trackSize].point);
+        currentElapsed = 0.0f;
     }
 
-    auto &current = cameraQueue.front();
+    return true;
+}
 
-    auto cameraPos = BSplinePoint(current.points[0],
-                                  current.points[1],
-                                  current.points[2],
-                                  current.points[3], current.elapsed / current.duration);
+bool Renderer::MovePosition(float dt) {
 
-    camera->Position = cameraPos;
+    int trackSize = (int)cameraQueue.size();
+    float t = currentElapsed / trackDuration;
+
+    camera->Position = GetPoint(currentSegment, t);
+    std::cout << camera->Pitch << std::endl;
+    std::cout << camera->Yaw << std::endl;
 
 
-    current.elapsed += dt;
+    currentElapsed += dt;
+    camera->Pitch = lerp(cameraQueue[(currentTrack+1)%trackSize].pitch, cameraQueue[(currentTrack+2)%trackSize].pitch, t);
+    camera->Yaw = lerp(cameraQueue[(currentTrack+1)%trackSize].yaw, cameraQueue[(currentTrack+2)%trackSize].yaw, t);
 
-    viewMatrix = Matrix4::BuildViewMatrix(cameraPos, Vector3(0, 0, 0), Vector3(0, 1, 0));
 
-    if (current.elapsed >= current.duration) {
-        cameraQueue.pop();
+    if (currentElapsed > trackDuration) {
+
+        currentTrack = (currentTrack + 1) % trackSize;
+        currentSegment = CalculateSegment(cameraQueue[currentTrack].point,
+                                          cameraQueue[(currentTrack+1)%trackSize].point,
+                                          cameraQueue[(currentTrack+2)%trackSize].point,
+                                          cameraQueue[(currentTrack+3)%trackSize].point);
+        currentElapsed = 0.0f;
     }
 
     return true;
@@ -280,13 +382,21 @@ bool Renderer::MovePosition(float dt, Vector3& position) {
 
 void Renderer::UpdateCameraMovement(float dt) {
 
-    //if (MovePosition(dt), Vector3(0, 1, 0)) return;
+    SetAutoCamera(false);
 
-    UpdateLookDirection(dt);
-    TranslateCamera(dt);
+    if (autoPilot)
+        MovePosition(dt);
+    else {
+        UpdateLookDirection(dt);
+        TranslateCamera(dt);
+    }
+
+
     //UpdateShip(dt);
-    if (Window::GetKeyboard()->KeyDown(KEYBOARD_Q)) {
-        std::cout << camera->Position << std::endl;
+    if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_Q)) {
+        std::cout << camera->Position;
+        std::cout << camera->Yaw << std::endl;
+        std::cout << camera->Pitch << std::endl;
     }
 
     viewMatrix = camera->BuildViewMatrix();
@@ -294,6 +404,10 @@ void Renderer::UpdateCameraMovement(float dt) {
 
 void Renderer::UpdateScene(float dt) {
     UpdateCameraMovement(dt);
+}
+
+void Renderer::SetAutoCamera(bool toggle) {
+    autoPilot = toggle;
 }
 
 void Renderer::RenderPlanetAtmosphere(GLuint tex, GLuint depth) {
@@ -383,6 +497,8 @@ void Renderer::RenderTextureToScreen(GLuint texture) {
 void Renderer::DrawModels() {
     auto c = registry.GetComponents<ModelData>();
     auto t = registry.GetComponents<Transform>();
+    auto &transforms = t->items;
+    auto &modeldata = c->items;
     int i = 0;
     for (auto it = c->items.begin(); it != c->items.end(); it++, i++) {
         auto item = *it;
@@ -398,12 +514,44 @@ void Renderer::DrawModels() {
             glBindTexture(GL_TEXTURE_2D, item.texture);
         }
 
+        if (item.shader == planetShader) {
+            int shouldIntersect = TestSphereIntersect(t->items[i].GetPositionVector(), transforms[i].GetScalingVector().x);
+        }
+
         glUniformMatrix4fv(glGetUniformLocation(item.shader->GetProgram(), "modelMatrix"), 1, false, t->items[i].values);
 
         glBindVertexArray(item.arrayObject);
         glDrawElements(item.type, item.numIndices, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
+}
+
+int Renderer::TestSphereIntersect(const Vector3 &position, float scale) {
+    Vector3 v1 = camera->Position;
+    Vector3 v2 = (
+                 Matrix4::Rotation(-camera->Pitch, Vector3(1, 0, 0))
+                 * Matrix4::Rotation(-camera->Yaw, Vector3(0, 1, 0))
+                 * Matrix4::Translation(Vector3(0, 0, 1))).GetPositionVector() * 10000;
+
+    auto a = v1 - position;
+    auto b = v2 - position;
+    auto c = v1 - v2;
+
+    if (a.Length() < scale || b.Length() < scale) {
+        return 1;
+    }
+
+    auto dot = Vector3::Dot(a, b);
+    auto mag = a.Length() * b.Length();
+
+    auto theta = acos(dot / mag);
+
+    if (theta < PI / 2)
+        return 0;
+
+    auto h = a.Length() * sqrt(1 - )
+
+    return 0;
 }
 
 void Model::Draw(Renderer *context) {

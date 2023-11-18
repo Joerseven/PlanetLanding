@@ -1,16 +1,21 @@
 #version 330 core
 
-uniform vec2 resolution;
 uniform sampler2D texture0;
 
-uniform float rt_w; // render target width
-uniform float rt_h; // render target height
+uniform float width; // render target width
+uniform float height; // render target height
+
+out vec3 fragColor;
+
+in Vertex {
+    vec2 texCoord;
+} IN;
 
 void main( void ) {
 
-    vec2 texCoords = gl_TexCoord[0].xy;
+    vec2 texCoords = IN.texCoord;
 
-    resolution = vec2(rt_w, rt_h);
+    vec2 resolution = vec2(width, height);
 
     float FXAA_SPAN_MAX = 8.0;
     float FXAA_REDUCE_MUL = 1.0/8.0;
@@ -56,8 +61,8 @@ void main( void ) {
     float lumaB = dot(rgbB, luma);
 
     if((lumaB < lumaMin) || (lumaB > lumaMax)){
-        gl_FragColor.xyz=rgbA;
+        fragColor.xyz=rgbA;
     }else{
-        gl_FragColor.xyz=rgbB;
+        fragColor.xyz=rgbB;
     }
 }

@@ -28,6 +28,14 @@ struct iVector2 {
     int y;
 };
 
+struct Segment
+{
+    Vector3 a;
+    Vector3 b;
+    Vector3 c;
+    Vector3 d;
+};
+
 struct bloomMip {
     Vector2 size;
     iVector2 iSize;
@@ -76,9 +84,9 @@ private:
 };
 
 struct CameraTrack {
-    Vector3 points[4];
-    float duration;
-    float elapsed;
+    Vector3 point;
+    float yaw;
+    float pitch;
 };
 
 class Model {
@@ -123,6 +131,13 @@ public:
     GLuint antiABuffer;
     Quaternion shipRotation;
 
+    int currentTrack;
+    float currentElapsed;
+    float trackDuration;
+    Segment currentSegment;
+
+    bool autoPilot;
+
     float pitching = 0.0f;
     float yawing = 0.0f;
 
@@ -135,7 +150,8 @@ public:
     Registry registry;
     Noise* noise;
     BloomRenderer* bloomRenderer;
-    std::queue<CameraTrack> cameraQueue;
+    std::vector<CameraTrack> cameraQueue;
+    std::vector<CameraTrack> spaceshipTrack;
 
     void RenderSceneToBuffer();
 
@@ -148,10 +164,6 @@ public:
     void UpdateLookDirection(float dt) const;
 
     void UpdateShip(float dt);
-
-    void AddCameraAnimation(CameraTrack &&track);
-
-    bool MovePosition(float dt, Vector3& position);
 
     void DrawModels();
 
@@ -179,6 +191,16 @@ public:
 
 
     void AntiAliasingPass(GLuint tex);
+
+    bool MovePosition(float dt);
+
+    void CreateCameraQueue();
+
+    bool MoveSpaceship(float dt, Vector3& position);
+
+    void SetAutoCamera(bool toggle);
+
+    int TestSphereIntersect(const Vector3& position, float scale);
 };
 
 

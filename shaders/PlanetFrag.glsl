@@ -35,8 +35,8 @@ void main() {
     vec3 unlitSea = IN.colour.rgb * step(0.5, texture(diffuseTex, tC).r);
     vec3 unlitLand = landColor * (1-step(0.5, texture(diffuseTex, tC).r));
 
-    vec3 surface = (unlitSea + unlitLand) * lightColor.rgb;
-    //vec3 surface = IN.colour.rgb;
+    //vec3 surface = (unlitSea + unlitLand) * lightColor.rgb;
+    vec3 surface = IN.colour.rgb;
     fragColor.rgb = surface * lambert * attenuation;
     fragColor.rgb += (lightColor.rgb * specFactor)*attenuation*0.33;
     fragColor.rgb += surface * 0.25f;
