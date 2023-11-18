@@ -551,6 +551,9 @@ int Renderer::TestSphereIntersect(const Vector3 &position, float scale) {
 
     auto h = a.Length() * sqrt(1 - )
 
+
+            //https://stackoverflow.com/questions/2062286/testing-whether-a-line-segment-intersects-a-sphere
+
     return 0;
 }
 
