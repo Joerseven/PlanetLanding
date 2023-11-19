@@ -30,10 +30,10 @@ vec4 addLight(vec3 baseColor) {
 
     vec3 landColor = vec3(1.0, 1.0, 1.0) - IN.colour.rgb;
 
-    vec3 output = baseColor * lambert * attenuation;
-    output += (lightColor.rgb * specFactor)*attenuation*0.33;
-    output += baseColor * 0.2f;
-    return vec4(output, 1.0);
+    vec3 o = baseColor * lambert * attenuation;
+    o += (lightColor.rgb * specFactor)*attenuation*0.33;
+    o += baseColor * 0.2f;
+    return vec4(o, 1.0);
 }
 
 void main() {
