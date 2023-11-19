@@ -516,7 +516,15 @@ void Renderer::DrawModels() {
 
         if (item.shader == planetShader) {
             int shouldIntersect = TestSphereIntersect(t->items[i].GetPositionVector(), transforms[i].GetScalingVector().x);
-            std::cout << shouldIntersect << std::endl;
+            glUniform1i(glGetUniformLocation(item.shader->GetProgram(), "glowFactor"), shouldIntersect);
+
+            Vector3 v2 =  (Matrix4::Rotation(camera->Yaw, Vector3(0, 1, 0))
+                           * Matrix4::Rotation(camera->Pitch, Vector3(1, 0, 0))
+                           * Matrix4::Translation(Vector3(0, 0, -1)))
+
+                                  .GetPositionVector();
+
+            glUniform3fv(glGetUniformLocation(item.shader->GetProgram(), "viewVector"), 1, (float*)&v2);
         }
 
         glUniformMatrix4fv(glGetUniformLocation(item.shader->GetProgram(), "modelMatrix"), 1, false, t->items[i].values);
@@ -529,10 +537,13 @@ void Renderer::DrawModels() {
 
 int Renderer::TestSphereIntersect(const Vector3 &position, float scale) {
     Vector3 v1 = camera->Position;
-    Vector3 v2 = (( Matrix4::Rotation(camera->Pitch, Vector3(1, 0, 0))
-                 * Matrix4::Rotation(camera->Yaw, Vector3(0, 1, 0))
-                 * Matrix4::Translation(Vector3(0, 0, -1))).GetPositionVector() * 30) + camera->Position;
+    Vector3 v2 =  (Matrix4::Rotation(camera->Yaw, Vector3(0, 1, 0))
+                 * Matrix4::Rotation(camera->Pitch, Vector3(1, 0, 0))
+                 * Matrix4::Translation(Vector3(0, 0, -1)))
 
+                 .GetPositionVector() * 30 + camera->Position;
+
+    std::cout << v1 << v2 << std::endl;
 
     auto a = v1 - position;
     auto b = v2 - position;

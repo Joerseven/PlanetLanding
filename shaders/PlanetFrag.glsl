@@ -6,6 +6,9 @@ uniform vec4 lightColor;
 uniform vec3 lightPos;
 uniform float lightRadius;
 
+uniform int glowFactor;
+uniform vec3 viewVector;
+
 in Vertex {
     vec2 texCoord;
     vec4 colour;
@@ -14,8 +17,6 @@ in Vertex {
 } IN;
 
 out vec4 fragColor;
-
-
 
 void main() {
     vec3 incident = normalize(lightPos - IN.worldPos);
@@ -40,5 +41,6 @@ void main() {
     fragColor.rgb = surface * lambert * attenuation;
     fragColor.rgb += (lightColor.rgb * specFactor)*attenuation*0.33;
     fragColor.rgb += surface * 0.25f;
+    fragColor.rgb += vec3(pow((1.0 - clamp(dot(IN.normal, viewDir), 0.0, 1.0)), 3.0)) * glowFactor * 4; // selection glow
     fragColor.a = 1.0;
 }
