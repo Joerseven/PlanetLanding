@@ -131,6 +131,8 @@ public:
     GLuint antiABuffer;
     Quaternion shipRotation;
 
+    Vector3 testVector1, testVector2;
+
     int currentTrack;
     float currentElapsed;
     float trackDuration;

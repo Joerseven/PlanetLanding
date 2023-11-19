@@ -516,6 +516,7 @@ void Renderer::DrawModels() {
 
         if (item.shader == planetShader) {
             int shouldIntersect = TestSphereIntersect(t->items[i].GetPositionVector(), transforms[i].GetScalingVector().x);
+            std::cout << shouldIntersect << std::endl;
         }
 
         glUniformMatrix4fv(glGetUniformLocation(item.shader->GetProgram(), "modelMatrix"), 1, false, t->items[i].values);
@@ -528,10 +529,10 @@ void Renderer::DrawModels() {
 
 int Renderer::TestSphereIntersect(const Vector3 &position, float scale) {
     Vector3 v1 = camera->Position;
-    Vector3 v2 = (
-                 Matrix4::Rotation(-camera->Pitch, Vector3(1, 0, 0))
-                 * Matrix4::Rotation(-camera->Yaw, Vector3(0, 1, 0))
-                 * Matrix4::Translation(Vector3(0, 0, 1))).GetPositionVector() * 10000;
+    Vector3 v2 = (( Matrix4::Rotation(camera->Pitch, Vector3(1, 0, 0))
+                 * Matrix4::Rotation(camera->Yaw, Vector3(0, 1, 0))
+                 * Matrix4::Translation(Vector3(0, 0, -1))).GetPositionVector() * 30) + camera->Position;
+
 
     auto a = v1 - position;
     auto b = v2 - position;
@@ -549,10 +550,17 @@ int Renderer::TestSphereIntersect(const Vector3 &position, float scale) {
     if (theta < PI / 2)
         return 0;
 
-    auto h = a.Length() * sqrt(1 - )
+    auto u1 = a.Normalised();
+    auto u2 = c.Normalised();
 
+    auto uDot = Vector3::Dot(u1, u2);
 
-            //https://stackoverflow.com/questions/2062286/testing-whether-a-line-segment-intersects-a-sphere
+    auto h = a.Length() * sqrt(1 - uDot * uDot);
+
+    if (h < scale)
+        return 1;
+    if (h >= scale)
+        return 0;
 
     return 0;
 }
