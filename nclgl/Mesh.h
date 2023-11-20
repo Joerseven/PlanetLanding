@@ -56,7 +56,7 @@ public:
 	void DrawSubMesh(int i);
 
 	static Mesh* LoadFromMeshFile(const std::string& name);
-    static std::unique_ptr<Mesh> LoadFromObjFile(const char *name);
+    static Mesh* LoadFromObjFile(const char *name);
     static Mesh* GenerateTriangle();
     static Mesh* GenerateQuad();
     static Mesh* GenerateUVSphere(int slices, int stacks);

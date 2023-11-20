@@ -25,8 +25,8 @@ public:
 
     void Draw(OGLRenderer *context);
 
-protected:
     GLuint textureId;
+protected:
     GLuint arrayObj;
     GLuint bufferId;
     Shader* shader;

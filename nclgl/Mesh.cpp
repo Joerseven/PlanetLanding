@@ -81,6 +81,7 @@ Mesh* Mesh::GenerateQuad() {
         m->colors[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
+    m->GenerateNormals();
     m->BufferData();
     return m;
 }
@@ -323,9 +324,9 @@ void ReadSubMeshNames(std::ifstream& file, int count, vector<string>& names) {
 	}
 }
 
-std::unique_ptr<Mesh> Mesh::LoadFromObjFile(const char* name) {
+Mesh* Mesh::LoadFromObjFile(const char* name) {
 
-    auto m = std::make_unique<Mesh>();
+    auto m = new Mesh();
 
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -333,7 +334,7 @@ std::unique_ptr<Mesh> Mesh::LoadFromObjFile(const char* name) {
 
     std::string err;
 
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, name);
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, name, MODELPATH);
 
     if (!err.empty()) {
         std::cerr << err << std::endl;
@@ -358,7 +359,8 @@ std::unique_ptr<Mesh> Mesh::LoadFromObjFile(const char* name) {
     GLuint iCounter = 0;
     GLuint vCounter = 0;
 
-    // Vertex might not share vertex colours so this isn't very efficient atm. Might optimise it another time but probably won't lets be honest.
+    // OBJ files often group verticies to save space and have multiple references to a normal/colour.
+    // I'm angrily ungrouping them which probably could be made more efficient.
     for (size_t index = 0; index < material_ids.size(); ++index) {
         Vector3 original[] = {
                 Vector3(attrib.vertices[indices[3 * index].vertex_index * 3],
