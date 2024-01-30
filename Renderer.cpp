@@ -58,6 +58,9 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent) {
 
     hdrFramebuffer = CreateHdrFramebuffer(colorBuffer, depthTexture);
     bloomRenderer = new BloomRenderer(width, height);
+    laserRenderer = std::make_unique<LaserRenderer>(CreatePostPassTexture());
+    laserRenderer->InitLaser(CreateHdrFramebuffer(laserRenderer->GetTexture(), 0));
+
     InitAntiAliasing();
 
     projMatrix = Matrix4::Perspective(0.01f, 100.0f, (float)width/float(height), 45.0f);
@@ -305,8 +308,8 @@ void Renderer::AntiAliasingPass(GLuint tex) {
 
 void Renderer::RenderScene() {
     RenderSceneToBuffer();
-
-    bloomRenderer->RenderBloomTexture(colorBuffer, 0.01f, *this);
+    laserRenderer->DrawLaser(*this, colorBuffer);
+    bloomRenderer->RenderBloomTexture(laserRenderer->GetTexture(), 0.01f, *this);
     AntiAliasingPass(bloomRenderer->FinalTexture());
     RenderTextureToScreen(antiATex);
 }

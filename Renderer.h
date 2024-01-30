@@ -18,6 +18,7 @@
 #include <cmath>
 #include "Quaternion.h"
 #include "BloomRenderer.h"
+#include "LaserRenderer.h"
 
 #define SHADERPATH "../shaders/"
 
@@ -95,6 +96,7 @@ public:
     Registry registry;
     Registry landRegistry;
     BloomRenderer* bloomRenderer;
+    std::unique_ptr<LaserRenderer> laserRenderer;
     std::vector<CameraTrack> cameraQueue;
     std::vector<CameraTrack> spaceshipTrack;
 
